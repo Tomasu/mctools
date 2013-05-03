@@ -6,23 +6,16 @@
 #define _concat(str1, str2) str1 ## str2
 
 #define register_class(state, class_name, meta_table, class_table) do { \
-	int lib_id, meta_id; \
-	/* newclass = {} */ \
-	lua_createtable(state, 0, 0); \
-	lib_id = lua_gettop(state); \
-	/* metatable = {} */ \
-	luaL_newmetatable(state, #class_name); \
-	meta_id = lua_gettop(state); \
-	luaL_setfuncs(state, meta_table, 0); \
-	/* metatable.__index = _methods */ \
-	luaL_newlib(state, class_table); \
-	lua_setfield(state, meta_id, "__index"); \
-	/* metatable.__metatable = _meta */ \
-	luaL_newlib(state, meta_table); \
-	lua_setfield(state, meta_id, "__metatable"); \
-	/* class.__metatable = metatable */ \
-	lua_setmetatable(state, lib_id); \
-	/* _G[class_name] = newclass */ \
+	luaL_newlib(state, class_table); /* 1 */ \
+	luaL_newmetatable(state, #class_name); /* 21 */ \
+	luaL_setfuncs(state, meta_table, 0); /* 21 */ \
+	lua_pushliteral(state, "__index"); /* 321 */ \
+	lua_pushvalue(state, -3); /* 4321 */ \
+	lua_rawset(state, -3); /* 21 */ \
+	lua_pushliteral(state, "__metatable"); /* 321 */ \
+	lua_pushvalue(state, -3); /* 4321 */ \
+	lua_rawset(state, -3); /* 21 */ \
+	lua_pop(state, 1); \
 	lua_setglobal(state, #class_name); \
 } while(0)
 
