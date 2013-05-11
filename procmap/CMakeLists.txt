@@ -7,12 +7,12 @@ add_definitions(${MAP_CFLAGS})
 
 add_executable(procmap
 	procmap.cpp
-	lua/chunk.cpp
-	lua/lua_helper.cpp
-	lua/map.cpp
-	lua/nbt.cpp
-	lua/region.cpp
+	BitMap.cpp
+	clean.cpp
+	process.cpp
+	widen.cpp
+	worker.cpp
 )
 
 add_dependencies(procmap mcmap)
-target_link_libraries(procmap ${MAP_LIBS} ${LUA_LIBRARIES})
+target_link_libraries(procmap ${MAP_LIBS} ${LUA_LIBRARIES} -lpthread -lm)
