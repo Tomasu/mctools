@@ -56,6 +56,8 @@ inline BitMap::~BitMap()
 inline bool BitMap::get(int64_t x, int64_t z)
 {
 	uint64_t bit = map_pos(x, z);
+	if(bit >= size_)
+		return false;
 	
 	uint32_t idx = bit / sizeof(*map_);
 	uint32_t rem = bit & (sizeof(*map_)*8-1);
@@ -65,6 +67,8 @@ inline bool BitMap::get(int64_t x, int64_t z)
 inline void BitMap::set(int64_t x, int64_t z)
 {
 	uint64_t bit = map_pos(x, z);
+	if(bit >= size_)
+		return;
 	
 	uint32_t idx = bit / sizeof(*map_);
 	uint32_t rem = bit & (sizeof(*map_)*8-1);
@@ -75,6 +79,8 @@ inline void BitMap::set(int64_t x, int64_t z)
 inline void BitMap::unset(int64_t x, int64_t z)
 {
 	uint64_t bit = map_pos(x, z);
+	if(bit >= size_)
+		return;
 	
 	uint32_t idx = bit / sizeof(*map_);
 	uint32_t rem = bit & (sizeof(*map_)*8-1);
@@ -85,9 +91,16 @@ inline void BitMap::unset(int64_t x, int64_t z)
 inline uint64_t BitMap::map_pos(int64_t x, int64_t z)
 {
 	if(x < left_ || x > right_)
+	{
 		NBT_Error("x coord %li out of bounds %li/%li", x, left_, right_);
+		//abort();
+	}	
+	
 	if(z < top_ || z > bottom_)
+	{
 		NBT_Error("z coord %li out of bounds %li/%li", z, top_, bottom_);
+		//abort();
+	}
 	
 	x += abs(left_);
 	z += abs(top_);

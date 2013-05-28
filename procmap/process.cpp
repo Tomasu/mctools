@@ -10,7 +10,7 @@
 #include "worker.h"
 #include "main.h"
 
-bool process_chunk(Chunk *chunk)
+bool process_chunk(Chunk *chunk, const std::vector<uint32_t> &blocks_vector, bool keep)
 {
 	NBT_Tag_Compound *nbt = chunk->nbt()->getCompound("Level");
 	//NBT_Debug("%ix%i level name: %s children:%i", chunk->x(), chunk->z(), nbt->name().c_str(), nbt->count());
@@ -60,11 +60,26 @@ bool process_chunk(Chunk *chunk)
 			
 			block_counts[block_id]++;
 			
-			if(keep_block(block_id))
+			bool i_can_has_block = has_block(blocks_vector, block_id);
+			if(keep)
 			{
-				keep_chunk = true;
+				if(i_can_has_block)
+				{
+					keep_chunk = true;
 				// NO BREAK! We want to count blocks
 				//break;
+					NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
+					return true;
+				}
+			}
+			else
+			{
+				if(!i_can_has_block)
+				{
+					keep_chunk = true;
+					NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
+					return true;
+				}
 			}
 			//printf("block: %i [%i:%i]\n", block_id + add_id, block_id, add_id);
 		}
@@ -74,7 +89,7 @@ bool process_chunk(Chunk *chunk)
 	return keep_chunk;
 }
 
-bool process_region(Region *region, BitMap *bitMap)
+bool process_region(Region *region, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
 {
 	if(!region->load())
 	{
@@ -84,14 +99,14 @@ bool process_region(Region *region, BitMap *bitMap)
 	
 	int keep_chunks = 0;
 	int delete_chunks = 0;
-	NBT_Debug("processing %i chunks", region->chunkCount());
+	NBT_Debug("processing region %ix%i with %i chunks", region->x(), region->z(), region->chunkCount());
 	for(auto &chunk: region->chunks())
 	{
 		if(!chunk)
 			continue;
 		
-		bool keep = process_chunk(chunk);
-		if(!keep)
+		bool keep_block = process_chunk(chunk, blocks, keep);
+		if(!keep_block)
 		{
 			delete_chunks++;
 			//region->deleteChunk(chunk);
@@ -113,7 +128,7 @@ bool process_region(Region *region, BitMap *bitMap)
 	return true;
 }
 
-void worker_fn_process(Worker *worker, BitMap *bitMap)
+void worker_fn_process(Worker *worker, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
 {
 	while(region_queue.size() > 0)
 	{
@@ -122,19 +137,19 @@ void worker_fn_process(Worker *worker, BitMap *bitMap)
 		region_queue.pop();
 		worker_mutex.unlock();
 		
-		NBT_Debug("worker %x begin: region %ix%i", worker->id, region->x(), region->z());
-		if(!process_region(region, bitMap))
+		NBT_Debug("worker %i begin: region %ix%i", worker->id, region->x(), region->z());
+		if(!process_region(region, bitMap, blocks, keep))
 		{
 			NBT_Error("failed to load region %ix%i", region->x(), region->z());
 		}
-		NBT_Debug("worker %x end: region %ix%i", worker->id, region->x(), region->z());
+		NBT_Debug("worker %i end: region %ix%i", worker->id, region->x(), region->z());
 	}
 	
-	NBT_Debug("worker %x done.", worker->id);
+	NBT_Debug("worker %i done.", worker->id);
 }
 
-bool process_map(Map *map, BitMap *bitMap)
+bool process_map(Map *map, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
 {
 	memset(block_counts, 0, sizeof(block_counts));
-	return worker_process_map(map, worker_fn_process, bitMap);
+	return worker_process_map(map, worker_fn_process, bitMap, blocks, keep);
 }

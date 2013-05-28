@@ -292,6 +292,6 @@ static const luaL_Reg nbt_methods[] = {
 
 void register_nbt(lua_State *state)
 {
-	register_constants(state, constants, sizeof(constants) / sizeof(ConstantValue));
 	register_class(state, NBTTAG_CLASSNAME, nbt_meta_methods, nbt_methods);
+	register_class_constants(state, NBTTAG_CLASSNAME, constants);
 }

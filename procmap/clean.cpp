@@ -72,15 +72,15 @@ void worker_fn_clean(Worker *worker, BitMap *bitMap)
 		region_queue.pop();
 		worker_mutex.unlock();
 		
-		NBT_Debug("worker %x begin: region %ix%i", worker->id, region->x(), region->z());
+		NBT_Debug("worker %i begin: region %ix%i", worker->id, region->x(), region->z());
 		if(!clean_region(region, bitMap))
 		{
 			NBT_Error("failed to load region %ix%i", region->x(), region->z());
 		}
-		NBT_Debug("worker %x end: region %ix%i", worker->id, region->x(), region->z());
+		NBT_Debug("worker %i end: region %ix%i", worker->id, region->x(), region->z());
 	}
 	
-	NBT_Debug("worker %x done.", worker->id);
+	NBT_Debug("worker %i done.", worker->id);
 }
 
 bool clean_map(Map *map, BitMap *bitMap)

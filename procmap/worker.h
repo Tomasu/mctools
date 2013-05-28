@@ -38,8 +38,8 @@ bool worker_process_map(Map *map, _Callable &&fn, _Args&&... __args)
 		region = map->nextRegion();
 	}
 	
-	int hw_concurrency = std::thread::hardware_concurrency() / 2;
-	int concurrent_workers =  hw_concurrency ? hw_concurrency+1 : 2;
+	int hw_concurrency = std::thread::hardware_concurrency();// / 2;
+	int concurrent_workers = hw_concurrency ? hw_concurrency+1 : 2;
 	NBT_Debug("start %i workers", concurrent_workers);
 	for(int i = 0; i < concurrent_workers; i++)
 	{

@@ -1,17 +1,17 @@
 #include <lua.hpp>
-#include "lua/map.h"
-#include "lua/region.h"
-#include "lua/nbt.h"
+//#include "lua/map.h"
+//#include "lua/region.h"
+//#include "lua/nbt.h"
 #include "lua/lua_helper.h"
 
 void register_classes(lua_State *state)
 {
-	register_map(state);
-	register_region(state);
-	register_nbt(state);
+	//register_map(state);
+	//register_region(state);
+	//register_nbt(state);
 }
 
-void register_constants(lua_State *state, const ConstantValue *c, int count)
+void register_global_constants(lua_State *state, const ConstantValue *c, int count)
 {
 	for(int i = 0; i < count; i++)
 	{
@@ -26,6 +26,34 @@ void register_constants(lua_State *state, const ConstantValue *c, int count)
 		
 		lua_setglobal(state, c[i].getName());
 	}
+}
+
+void register_class_constants_(lua_State *state, const std::string &class_name, ConstantValue *c, int count)
+{
+	lua_getglobal(state, class_name.c_str());
+	if(lua_isnil(state, -1))
+	{
+		luaL_error(state, "attempt to register class constants in class (%s) that does not exist", class_name.c_str());
+		return;
+	}
+	
+	for(int i = 0; i < count; i++)
+	{
+		lua_pushstring(state, c[i].getName());
+		
+		if(c[i].getType() == TYPE_INT)
+			lua_pushnumber(state, c[i].getValue<int>());
+		else if(c[i].getType() == TYPE_NUM)
+			lua_pushnumber(state, c[i].getValue<double>());
+		else if(c[i].getType() == TYPE_STR)
+			lua_pushstring(state, c[i].getValue<const char*>());
+		else
+			lua_pushnil(state);
+		
+		lua_rawset(state, -3);
+	}
+	
+	lua_pop(state, 1);
 }
 
 void lua_stack_dump(lua_State *L)

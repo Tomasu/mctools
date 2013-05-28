@@ -2,7 +2,7 @@
 #include "BitMap.h"
 #include "NBT_Debug.h"
 
-BitMap *widen_bitmap(BitMap *bitMap)
+BitMap *widen_bitmap(BitMap *bitMap, int r)
 {
 	int64_t mapWidth = bitMap->width();
 	int64_t mapHeight = bitMap->height();
@@ -18,7 +18,7 @@ BitMap *widen_bitmap(BitMap *bitMap)
 			{
 				widened->set(x, z);
 				
-				circleFill(widened, x, z, 10);
+				circleFill(widened, x, z, r);
 			}
 		}
 	}

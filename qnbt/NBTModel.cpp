@@ -55,7 +55,7 @@ bool NBTModel::open(const QString &fname)
 	}
 
 	NBT_Debug("file len: %i", length);
-	NBT_Tag *new_nbt = NBT_Tag::readTag(fh);
+	NBT_Tag *new_nbt = NBT_Tag::LoadTag(fh);
 	if(!new_nbt)
 	{
 		NBT_Error("failed to read nbt data");
