@@ -7,7 +7,7 @@
 #include "Map.h"
 #include "NBT_Debug.h"
 
-class Region;
+class MCRegion;
 
 struct Worker {
 	int id;
@@ -25,13 +25,13 @@ struct Worker {
 
 extern std::mutex worker_mutex;
 extern std::vector<Worker *> workers;
-extern std::queue<Region *> region_queue;
+extern std::queue<MCRegion *> region_queue;
 
 template<typename _Callable, typename... _Args>
 bool worker_process_map(Map *map, _Callable &&fn, _Args&&... __args)
 {
 	NBT_Debug("fill region_queue for workers");
-	Region *region = map->firstRegion();
+	MCRegion *region = map->firstRegion();
 	while(region != 0)
 	{
 		region_queue.push(region);

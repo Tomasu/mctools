@@ -8,5 +8,5 @@
 int Worker::next_thread_id = 1;
 std::mutex worker_mutex;
 std::vector<Worker *> workers;
-std::queue<Region *> region_queue;
+std::queue<MCRegion *> region_queue;
 

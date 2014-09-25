@@ -191,7 +191,7 @@ bool load_scripts(lua_State *state, const char *scriptpath)
 	return true;
 }
 
-bool process_region_lua(lua_State *state, Region *region)
+bool process_region_lua(lua_State *state, MCRegion *region)
 {
 	//NBT_Debug("begin");
 	if(!region->load())
@@ -232,7 +232,7 @@ bool process_map_lua(lua_State *state, Map *map, const char *scriptpath)
 	if(!load_scripts(state, scriptpath))
 		return false;
 	
-	Region *region = map->firstRegion();
+	MCRegion *region = map->firstRegion();
 	while(region != 0)
 	{
 		if(!process_region_lua(state, region))

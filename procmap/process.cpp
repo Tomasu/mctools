@@ -4,7 +4,7 @@
 #include "NBT_Tag_Compound.h"
 #include "NBT_Tag_List.h"
 #include "NBT_Tag_Byte_Array.h"
-#include "Region.h"
+#include "MCRegion.h"
 #include "Chunk.h"
 #include "BitMap.h"
 #include "worker.h"
@@ -89,7 +89,7 @@ bool process_chunk(Chunk *chunk, const std::vector<uint32_t> &blocks_vector, boo
 	return keep_chunk;
 }
 
-bool process_region(Region *region, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
+bool process_region(MCRegion *region, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
 {
 	if(!region->load())
 	{
@@ -133,7 +133,7 @@ void worker_fn_process(Worker *worker, BitMap *bitMap, const std::vector<uint32_
 	while(region_queue.size() > 0)
 	{
 		worker_mutex.lock();
-		Region *region = region_queue.front();
+		MCRegion *region = region_queue.front();
 		region_queue.pop();
 		worker_mutex.unlock();
 		

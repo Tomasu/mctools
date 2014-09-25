@@ -3,7 +3,7 @@
 
 #include <lua.hpp>
 
-class Region;
+class MCRegion;
 
 #include "Map.h"
 

@@ -10,7 +10,7 @@
 static int Map_firstRegion(lua_State *state)
 {
 	LuaMap *map = get_lua_object(state, MAP_CLASSNAME);
-	Region *region = map->firstRegion();
+	MCRegion *region = map->firstRegion();
 	create_lua_object(state, Region, region);
 	return 1;
 }
@@ -18,7 +18,7 @@ static int Map_firstRegion(lua_State *state)
 static int Map_nextRegion(lua_State *state)
 {
 	LuaMap *map = get_lua_object(state, MAP_CLASSNAME);
-	Region *region = map->nextRegion();
+	MCRegion *region = map->nextRegion();
 	create_lua_object(state, Region, region);
 	return 1;
 }

@@ -10,7 +10,7 @@ class Chunk;
 class LuaRegion
 {
 	public:
-		LuaRegion(lua_State *, Region *region) : region(region) { }
+		LuaRegion(lua_State *, MCRegion *region) : region(region) { }
 		
 		bool load() { return region->load(); }
 		void unload() { region->unload(); }
@@ -29,7 +29,7 @@ class LuaRegion
 		void deleteChunk(Chunk *c) { region->deleteChunk(c); }
 		
 	private:
-		Region *region;
+		MCRegion *region;
 };
 
 #endif /* LUAREGION_H_GUARD */

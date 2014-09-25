@@ -10,7 +10,7 @@
 #include "Map.h"
 #include "Player.h"
 #include "Block.h"
-#include "Region.h"
+#include "MCRegion.h"
 #include "NBT_Debug.h"
 #include "BitMap.h"
 #include "widen.h"
@@ -61,7 +61,7 @@ BitMap *build_bitmap(Map *map)
 	int64_t min_z = LONG_MAX, max_z = -LONG_MAX;
 	uint64_t total_chunks = 0;
 	
-	Region *region = map->firstRegion();
+	MCRegion *region = map->firstRegion();
 	while(region != 0)
 	{
 		//region->load();

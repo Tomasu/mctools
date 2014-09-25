@@ -10,7 +10,7 @@
 uint32_t total_keep_chunks = 0;
 uint32_t total_deleted_chunks = 0;
 	
-bool clean_region(Region *region, BitMap *chunkBitMap)
+bool clean_region(MCRegion *region, BitMap *chunkBitMap)
 {
 	uint32_t keep_chunks = 0;
 	uint32_t deleted_chunks = 0;
@@ -68,7 +68,7 @@ void worker_fn_clean(Worker *worker, BitMap *bitMap)
 	while(region_queue.size() > 0)
 	{
 		worker_mutex.lock();
-		Region *region = region_queue.front();
+		MCRegion *region = region_queue.front();
 		region_queue.pop();
 		worker_mutex.unlock();
 		
