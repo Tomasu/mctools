@@ -1,13 +1,13 @@
 project(qnbt CXX)
 
-#add_definitions(-fPIC)
-
 find_package(Qt4 REQUIRED)
 include(${QT_USE_FILE})
 
+find_package(LibNBT REQUIRED)
+
 QT4_WRAP_CPP(MOCSRC MainWindow.h NBTModel.h NBTItemDelegate.h)
  
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${LIBNBT_INCLUDE_DIRS})
 
 add_definitions(${MAP_CFLAGS})
 
@@ -21,5 +21,5 @@ add_executable(qnbt
 	${MOCSRC}
 )
 
-add_dependencies(qnbt mcmap)
-target_link_libraries(qnbt ${QT_LIBRARIES} ${NBT_LIBS})
+add_dependencies(qnbt mcmap nbt)
+target_link_libraries(qnbt ${QT_LIBRARIES} ${LIBNBT_LIBRARIES})
