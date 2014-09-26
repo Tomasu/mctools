@@ -13,5 +13,6 @@ add_definitions(-Wextra -Wall -pipe -std=gnu++11)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
 
 add_subdirectory(qnbt)
+add_subdirectory(misc)
 #add_subdirectory(trimmap)
 #add_subdirectory(procmap)
