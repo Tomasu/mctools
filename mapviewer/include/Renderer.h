@@ -10,6 +10,7 @@ class ALLEGRO_DISPLAY;
 class ALLEGRO_TIMER;
 class ALLEGRO_SHADER;
 class ALLEGRO_TRANSFORM;
+class ALLEGRO_BITMAP;
 class Level;
 class Map;
 class ChunkData;
@@ -37,11 +38,20 @@ class Renderer
 	private:
 		Level *level_;
 		Map *dim0_;
+		uint32_t vao_;
+		
+		bool key_state_[ALLEGRO_KEY_MAX];
 		
 		ALLEGRO_EVENT_QUEUE *queue_;
 		ALLEGRO_TIMER *tmr_;
 		ALLEGRO_DISPLAY *dpy_;
 		ALLEGRO_SHADER *prg_;
+		ALLEGRO_BITMAP *bmp_;
+		
+		struct { 
+			double x, y, z;
+			double rx, ry, rz, ra;
+		} cam_;
 		
 		void processChunk(int x, int z);
 		bool chunkDataExists(int32_t x, int32_t z);

@@ -10,43 +10,41 @@
 #include <stdint.h>
 #include <string.h>
 
-ChunkData::ChunkData(double *data, uint32_t size) : vbo_(0), size_(size), data_(data)
+typedef struct
 {
-	glGenBuffers(1, &vbo_);
+   float x, y, z;
+} CUSTOM_VERTEX;
+
+ChunkData::ChunkData(float *data, uint32_t size) : vbo_(0), size_(size)
+{
+	ALLEGRO_VERTEX_ELEMENT elements[] = {
+		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CUSTOM_VERTEX, x) },
+		{ 0, 0, 0 }
+	};
 	
-	// The following commands will talk about our 'vertexbuffer' buffer
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_);
- 
-	// Give our vertices to OpenGL.
-	glBufferData(GL_ARRAY_BUFFER, size_, data_, GL_STATIC_DRAW);
+	vtxdecl_ = al_create_vertex_decl(elements, sizeof(CUSTOM_VERTEX));
+	
+	vbo_ = al_create_vertex_buffer(vtxdecl_, data, size_/3, 0);
 }
 
 ChunkData::~ChunkData()
 {
-	glDeleteBuffers(1, &vbo_);
+	al_destroy_vertex_buffer(vbo_);
+	al_destroy_vertex_decl(vtxdecl_);
 }
 
 void ChunkData::draw()
 {
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_);
-	glVertexAttribPointer(
-		0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-		size_ / 3,          // size
-		GL_FLOAT,           // type
-		GL_FALSE,           // normalized?
-		0,                  // stride
-		(void*)0            // array buffer offset
-	);
+	al_draw_vertex_buffer(vbo_, NULL, 0, size_/3, ALLEGRO_PRIM_TRIANGLE_LIST);
 }
 
 ChunkData *ChunkData::Create(Chunk *c)
 {
-	double *data = new double[MAX_DATA_SIZE];
+	float *data = new float[MAX_DATA_SIZE];
 	if(!data)
 		return nullptr;
 	
-	double *dptr = data;
+	float *dptr = data;
 	
 	NBT_Tag_Compound *nbt = c->nbt()->getCompound("Level");
 	//NBT_Debug("%ix%i level name: %s children:%i", c->x(), c->z(), nbt->name().c_str(), nbt->count());
@@ -81,7 +79,8 @@ ChunkData *ChunkData::Create(Chunk *c)
 					// FIXME: create a cache of these things.
 					BlockData *block = BlockData::Create(block_data[idx], 0);
 					
-					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, y + dy, zPos + dz);
+					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy);
+					//NBT_Debug("nidx: %i", num_idx);
 					dptr += num_idx;
 					total_size += num_idx;
 					
@@ -92,11 +91,8 @@ ChunkData *ChunkData::Create(Chunk *c)
 		}
 	}
 	
-	// make a copy that isnt 6MB in size. loooool.
-	double *comp_data = new double[total_size];
-	memcpy(comp_data, data, total_size*sizeof(double));
+	ChunkData *cdata = new ChunkData(data, total_size);
 	delete data;
 	
-	ChunkData *cdata = new ChunkData(comp_data, total_size);
 	return cdata;
 }

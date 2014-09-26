@@ -6,7 +6,7 @@ class BlockData
 {
 	public:
 		static BlockData *Create(uint32_t blkid, uint32_t data);
-		virtual uint32_t toVerticies(double *buff, double xoff, double zoff, double yoff) = 0;
+		virtual uint32_t toVerticies(float *buff, double xoff, double zoff, double yoff) = 0;
 		
 		BlockData();
 		virtual ~BlockData();
@@ -16,13 +16,13 @@ class BlockData
 class UnknownBlockData : public BlockData
 {
 	public:
-		uint32_t toVerticies(double *buff, double xoff, double zoff, double yoff);
+		uint32_t toVerticies(float *buff, double xoff, double zoff, double yoff);
 };
 
 class SolidBlockData : public BlockData
 {
 	public:
-		uint32_t toVerticies(double *buff, double xoff, double zoff, double yoff);
+		uint32_t toVerticies(float *buff, double xoff, double zoff, double yoff);
 };
 
 #endif /* BLOCKDATA_H_GUARD */

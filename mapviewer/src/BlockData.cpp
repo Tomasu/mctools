@@ -98,14 +98,14 @@ BlockData *BlockData::Create(uint32_t blkid, uint32_t)
 	return nullptr;
 }
 
-uint32_t UnknownBlockData::toVerticies(double *, double, double, double)
+uint32_t UnknownBlockData::toVerticies(float *, double, double, double)
 {
 	return 0;
 }
 
-uint32_t SolidBlockData::toVerticies(double *buff, double xoff, double zoff, double yoff)
+uint32_t SolidBlockData::toVerticies(float *buff, double xoff, double zoff, double yoff)
 {
-	double cube[] = {
+	float cube[] = {
 		-0.5f,-0.5f,-0.5f, // triangle 1 : begin
 		-0.5f,-0.5f, 0.5f,
 		-0.5f, 0.5f, 0.5f, // triangle 1 : end
@@ -144,7 +144,7 @@ uint32_t SolidBlockData::toVerticies(double *buff, double xoff, double zoff, dou
 		0.5f,-0.5f, 0.5f
 	};
 	
-	for(int i = 0; i < sizeof(cube) / sizeof(double); i++)
+	for(int i = 0; i < sizeof(cube) / sizeof(float); i++)
 	{
 		int m = i % 3;
 		if(m == 0)
@@ -155,6 +155,6 @@ uint32_t SolidBlockData::toVerticies(double *buff, double xoff, double zoff, dou
 			buff[i] = cube[i] + zoff;
 	}
 	
-	return sizeof(cube) / sizeof(double);
+	return sizeof(cube) / sizeof(float);
 }
 
