@@ -15,6 +15,5 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
 add_subdirectory(qnbt)
 add_subdirectory(misc)
 add_subdirectory(mapviewer)
-
-#add_subdirectory(trimmap)
+add_subdirectory(trimmap)
 #add_subdirectory(procmap)

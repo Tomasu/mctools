@@ -1,7 +1,7 @@
 #include <vector>
 #include <unistd.h>
 #include "clean.h"
-#include "Region.h"
+#include "MCRegion.h"
 #include "Map.h"
 #include "Chunk.h"
 #include "BitMap.h"
@@ -18,7 +18,7 @@ bool clean_region(MCRegion *region, BitMap *chunkBitMap)
 	if(region->load())
 	{
 		bool save_region = false;
-		std::vector<Chunk *> &chunks = region->chunks();
+		std::vector<Chunk *> chunks = region->chunks();
 	
 		for(auto &chunk: chunks)
 		{

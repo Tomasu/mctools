@@ -4,7 +4,7 @@
 #include "NBT_Tag_Compound.h"
 #include "NBT_Tag_List.h"
 #include "NBT_Tag_Byte_Array.h"
-#include "Region.h"
+#include "MCRegion.h"
 #include "Chunk.h"
 #include "BitMap.h"
 #include "worker.h"
@@ -60,28 +60,31 @@ bool process_chunk(Chunk *chunk, const std::vector<uint32_t> &blocks_vector, boo
 			
 			block_counts[block_id]++;
 			
-			bool i_can_has_block = has_block(blocks_vector, block_id);
-			if(keep)
+			if(!keep_chunk)
 			{
-				if(i_can_has_block)
+				bool i_can_has_block = has_block(blocks_vector, block_id);
+				if(keep)
 				{
-					keep_chunk = true;
-				// NO BREAK! We want to count blocks
-				//break;
-					NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
-					return true;
+					if(i_can_has_block)
+					{
+						keep_chunk = true;
+					// NO BREAK! We want to count blocks
+					//break;
+						NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
+						//return true;
+					}
 				}
-			}
-			else
-			{
-				if(!i_can_has_block)
+				else
 				{
-					keep_chunk = true;
-					NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
-					return true;
+					if(!i_can_has_block)
+					{
+						keep_chunk = true;
+						NBT_Debug("keep chunk %ix%i because of: %s", chunk->x(), chunk->z(), BlockName(block_id));
+						//return true;
+					}
 				}
+				//printf("block: %i [%i:%i]\n", block_id + add_id, block_id, add_id);
 			}
-			//printf("block: %i [%i:%i]\n", block_id + add_id, block_id, add_id);
 		}
 	}
 	//printf("\n");
@@ -89,7 +92,7 @@ bool process_chunk(Chunk *chunk, const std::vector<uint32_t> &blocks_vector, boo
 	return keep_chunk;
 }
 
-bool process_region(Region *region, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
+bool process_region(MCRegion *region, BitMap *bitMap, const std::vector<uint32_t> &blocks, bool keep)
 {
 	if(!region->load())
 	{
@@ -133,7 +136,7 @@ void worker_fn_process(Worker *worker, BitMap *bitMap, const std::vector<uint32_
 	while(region_queue.size() > 0)
 	{
 		worker_mutex.lock();
-		Region *region = region_queue.front();
+		MCRegion *region = region_queue.front();
 		region_queue.pop();
 		worker_mutex.unlock();
 		

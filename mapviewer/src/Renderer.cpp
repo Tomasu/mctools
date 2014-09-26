@@ -193,17 +193,6 @@ void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
 
 void Renderer::draw()
 {
-/*	GLdouble zNear = 1.0, zFar = 1000.0;
-	GLdouble fovY = 45.0;
-	GLdouble fW, fH;
-	GLdouble aspect = (GLdouble)al_get_display_height(dpy_) / (GLdouble)al_get_display_width(dpy_);
-	fH = tan( fovY / 360 * M_PI ) * zNear;
-	fW = fH * aspect;
-
-	glFrustum( -fW, fW, -fH, fH, zNear, zFar );
-*/
-	//glFrustum(float left, float right, float bottom, float top, float near, float far);
-	
 	ALLEGRO_TRANSFORM trans;
 	al_identity_transform(&trans);
 	al_translate_transform_3d(&trans, 0, 0, 20);
