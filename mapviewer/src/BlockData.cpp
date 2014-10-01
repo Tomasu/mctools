@@ -107,86 +107,73 @@ uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, flo
 
 uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page)
 {
-	const int NUM_VERTS_SHARED = 8;
-	VF3 verts[NUM_VERTS_SHARED] = {
-		{ 0.500000, -0.500000, -0.500000 },
-		{ 0.500000, -0.500000, 0.500000 },
-		{ -0.500000, -0.500000, 0.500000 },
-		{ -0.500000, -0.500000, -0.500000 },
-		{ 0.500000, 0.500000, -0.500000 },
-		{ 0.500000, 0.500000, 0.500000 },
-		{ -0.500000, 0.500000, 0.500000 },
-		{ -0.500000, 0.500000, -0.500000 }
-	};
-	
-	VF2 txcs[NUM_VERTS_SHARED] = {
-		{ 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 },
-		{ 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 },
-		
-/*		{ 1.000000, 1.000000 },
-		{ 1.000000, 0.000000 },
-		{ 0.000000, 0.000000 },
-		{ 0.000000, 1.000000 },
-		{ 1.000000, 1.000000 },
-		{ 0.000000, 1.000000 },
-		{ 1.000000, 1.000000 },
-		{ 1.000000, 1.000000 }*/
-	};
-	
-	const int NUM_FACES = 12;
-	VI3 vtxFaces[NUM_FACES] = {
-		{ 2, 3, 4 },
-		{ 8, 7, 6 },
-		{ 1, 5, 6 },
-		{ 2, 6, 7 },
-		{ 7, 8, 4 },
-		{ 1, 4, 8 },
-		{ 1, 2, 4 },
-		{ 5, 8, 6 },
-		{ 2, 1, 6 },
-		{ 3, 2, 7 },
-		{ 3, 7, 4 },
-		{ 5, 1, 8 }
-	};
-	
-	
-	VI3 txFaces[NUM_FACES] = {
-		{ 1, 2, 3 },
-		{ 4, 3, 5 },
-		{ 5, 6, 4 },
-		{ 5, 6, 4 },
-		{ 6, 7, 8 },
-		{ 1, 2, 3 },
-		{ 5, 1, 3 },
-		{ 6, 4, 5 },
-		{ 3, 5, 4 },
-		{ 3, 5, 4 },
-		{ 5, 6, 8 },
-		{ 5, 1, 3 }
+	CUSTOM_VERTEX vtx[36] = {
+		//front face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		//left face (viewers left when looking at front face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ { -0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		//right face (viewers right when looking at front face
+		//upper left triangle (viewed face on)
+		{ {  0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		//back face
+		//upper left triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ { -0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		//top face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		//bottom face
+		//upper left triangle (viewed face on)
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 }	//lower right
 	};
 	
 	CUSTOM_VERTEX *ptr = buff;
 	
-	for(int i = 0; i < NUM_FACES; i++)
+	for(int i = 0; i < 36; i++)
 	{
-		VI3 &vtxface = vtxFaces[i];
-		VI3 &txface = txFaces[i];
+		CUSTOM_VERTEX &v = vtx[i], &cv = *ptr;
+		ptr++;
 		
-		for(int j = 0; j < 3; j++)
-		{
-			VF3 &vert = verts[vtxface.i[j]-1];
-			VF2 &txc = txcs[txface.i[j]-1];
-			
-			CUSTOM_VERTEX &cv = *ptr;
-			ptr++;
-			
-			cv.pos = { vert.f1 + xoff, vert.f2 + yoff, vert.f3 + zoff };
-			cv.txcoord = { ( txc.f1 * tx_xfact + tx_x ), ( txc.f2 * tx_yfact + tx_y ) };
-			//cv.txcoord = txc;
-			//NBT_Debug("txc: %f,%f", cv.txcoord.f1, cv.txcoord.f2);
-			//NBT_Debug("xy: %f, %f, %f", cv.pos.f1, cv.pos.f2, cv.pos.f3);
-			cv.tx_page = tx_page;
-		}
+		cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
+		cv.txcoord = { v.txcoord.f1 * tx_xfact + tx_x, v.txcoord.f2 * tx_yfact + tx_y };
+		cv.tx_page = tx_page;
 	}
 	
 	return NUM_VERTS;
