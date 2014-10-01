@@ -59,7 +59,7 @@ inline bool BitMap::get(int64_t x, int64_t z)
 	if(bit >= size_)
 		return false;
 	
-	uint32_t idx = bit / sizeof(*map_);
+	uint32_t idx = bit / 8 / sizeof(*map_);
 	uint32_t rem = bit & (sizeof(*map_)*8-1);
 	return( (map_[idx] >> ((sizeof(*map_)*8-1)-rem)) & 0x1 );
 }
@@ -70,7 +70,7 @@ inline void BitMap::set(int64_t x, int64_t z)
 	if(bit >= size_)
 		return;
 	
-	uint32_t idx = bit / sizeof(*map_);
+	uint32_t idx = bit / 8 / sizeof(*map_);
 	uint32_t rem = bit & (sizeof(*map_)*8-1);
 	
 	map_[idx] |= 1 << ((sizeof(*map_)*8-1)-rem);

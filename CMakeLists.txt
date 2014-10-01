@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(mctools CXX)
 
+include(cmake/Common.cmake)
+
 if(CMAKE_BUILD_TYPE STREQUAL Debug)
    add_definitions(-DDEBUG -O0 -ggdb3)
 else()

@@ -1,15 +1,32 @@
 #ifdef GL_ES
 precision mediump float;
 #endif
-uniform sampler2D al_tex;
-uniform vec3 tint;
-varying vec4 varying_color;
+
+uniform sampler2D atlas_sheet_0;
+//uniform sampler2D atlas_sheet_1;
+//uniform sampler2D atlas_sheet_2;
+//uniform sampler2D atlas_sheet_3;
+
 varying vec2 varying_texcoord;
+varying float varying_tx_page;
+
 void main()
 {
-   vec4 tmp = varying_color * texture2D(al_tex, varying_texcoord);
-   tmp.r *= tint.r;
-   tmp.g *= tint.g;
-   tmp.b *= tint.b;
-   gl_FragColor = vec4(0.5, 0.5, 0.5, 1.0);
+   vec4 color0 = texture2D(atlas_sheet_0, varying_texcoord);
+//   vec4 color1 = texture2D(atlas_sheet_1, varying_texcoord);
+//   vec4 color2 = texture2D(atlas_sheet_2, varying_texcoord);
+//   vec4 color3 = texture2D(atlas_sheet_3, varying_texcoord);
+	
+   if(floor(varying_tx_page+0.5) == 1.0)
+		gl_FragColor = color0;//
+//	else if(varying_tx_page == 2.0)
+//		gl_FragColor = color1;
+//	else if(varying_tx_page  == 3.0)
+//		gl_FragColor = color2;
+//	else if(varying_tx_page  == 4.0)
+//		gl_FragColor = color3;
+	else
+		gl_FragColor = vec4(1.0,0.5,1.0,0.5);
+
+//	gl_FragColor = vec4(varying_texcoord.xy, 1.0, 1.0);
 }

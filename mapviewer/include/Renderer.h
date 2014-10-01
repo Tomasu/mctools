@@ -3,17 +3,15 @@
 
 #include <unordered_map>
 #include <utility>
+#include <allegro5/allegro.h>
+
 #include "PairHash.h"
 
-class ALLEGRO_EVENT_QUEUE;
-class ALLEGRO_DISPLAY;
-class ALLEGRO_TIMER;
-class ALLEGRO_SHADER;
-class ALLEGRO_TRANSFORM;
-class ALLEGRO_BITMAP;
+class ResourceManager;
 class Level;
 class Map;
 class ChunkData;
+class AtlasSheet;
 
 class Renderer
 {
@@ -30,10 +28,21 @@ class Renderer
 		void uninit();
 		void run();
 		
+		void drawHud();
 		void draw();
 		
 		typedef std::pair<int32_t, int32_t> ChunkDataKey;
 		ChunkDataKey getChunkKey(int32_t x, int32_t z) const { return std::make_pair(x, z); }
+		
+		bool setShaderSampler(AtlasSheet *sheet);
+		void unsetShaderSampler(AtlasSheet *sheet);
+		
+		enum ShaderType {
+			SHADER_DEFAULT = 1,
+			SHADER_ALLEGRO
+		};
+		
+		bool setShader(ShaderType type);
 		
 	private:
 		Level *level_;
@@ -46,17 +55,21 @@ class Renderer
 		ALLEGRO_TIMER *tmr_;
 		ALLEGRO_DISPLAY *dpy_;
 		ALLEGRO_SHADER *prg_;
+		ALLEGRO_SHADER *al_prg_;
 		ALLEGRO_BITMAP *bmp_;
+		ALLEGRO_TRANSFORM al_proj_transform_;
 		
 		struct { 
 			double x, y, z;
 			double rx, ry, rz, ra;
 		} cam_;
 		
+		ResourceManager *resManager_;
+		
 		void processChunk(int x, int z);
 		bool chunkDataExists(int32_t x, int32_t z);
 		bool loadShaders(const char *vertex_file_path, const char *fragment_file_path);
-		
+		bool loadAllegroShaders();
 		void setupProjection(ALLEGRO_TRANSFORM *m);
 		
 		std::unordered_map<ChunkDataKey, ChunkData *> chunkData_;
