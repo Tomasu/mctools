@@ -296,7 +296,7 @@ void Renderer::run()
 			float dx = ev.mouse.dx, dy = ev.mouse.dy;
 			float ry = dx / al_get_display_width(dpy_), rx = dy / al_get_display_height(dpy_);
 			
-			rx_look -= rx;
+			rx_look += rx;
 			al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
 //			al_rotate_transform_3d(&camera_transform_, 1.0, 0.0, 0.0, rx);
 			
@@ -367,11 +367,12 @@ void Renderer::draw()
 	
 	ALLEGRO_TRANSFORM trans;
 	al_identity_transform(&trans);
+	
 	al_compose_transform(&trans, &camera_transform_);
+	al_rotate_transform_3d(&trans, 1.0, 0.0, 0.0, rx_look);
 	
 	setupProjection(&trans);
 	al_identity_transform(&trans);
-	al_rotate_transform_3d(&trans, 1.0, 0.0, 0.0, rx_look);
 	
 	
 	al_use_transform(&trans);
