@@ -116,8 +116,8 @@ bool Renderer::init()
 	// do display creation last so a display isn't created and instantly destroyed if any of the
 	// preceeding initializations fail.
 	al_set_new_display_flags(ALLEGRO_OPENGL | ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL_3_0);
-	al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
-   al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
+	//al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
+   //al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
 	
 	dpy = al_create_display(1024, 768);
@@ -173,6 +173,10 @@ bool Renderer::init()
 	def_trans = al_get_projection_transform(dpy);
 	al_copy_transform(&al_proj_transform_, def_trans);
 	
+	al_identity_transform(&camera_transform_);
+	
+	rx_look = 0.0;
+	
 	queue_ = queue;
 	tmr_ = tmr;
 	dpy_ = dpy;
@@ -199,7 +203,10 @@ init_failed:
 void Renderer::run()
 {
 	NBT_Debug("begin");
-	cam_ = {-8, -64, -192, 0, 0, 0, 0};
+	
+	al_identity_transform(&camera_transform_);
+	al_translate_transform_3d(&camera_transform_, -1, -64, -112);
+
 	memset(key_state_, 0, sizeof(key_state_) * sizeof(key_state_[0]));
 	
 	al_start_timer(tmr_);
@@ -232,19 +239,39 @@ void Renderer::run()
       if(ev.type == ALLEGRO_EVENT_TIMER)
 		{
          redraw = true;
-			cam_.rx = 1.0;
+			//cam_.rx = 1.0;
+			float x = 0.0, y = 0.0, z = 0.0;
+			float translate_diff = 0.3;
+			float ry = 0.0;
+			float rotate_diff = 0.04;
 			
-			if(key_state_[ALLEGRO_KEY_UP])
-				cam_.z+=0.2;
+			if(key_state_[ALLEGRO_KEY_W])
+				z += translate_diff;
 			
-			if(key_state_[ALLEGRO_KEY_DOWN])
-				cam_.z-=0.2;
+			if(key_state_[ALLEGRO_KEY_S])
+				z -= translate_diff;
+			
+			if(key_state_[ALLEGRO_KEY_A])
+				x += translate_diff;
+			
+			if(key_state_[ALLEGRO_KEY_D])
+				x -= translate_diff;
+			
+			if(key_state_[ALLEGRO_KEY_SPACE])
+				y -= translate_diff;
+			
+			if(key_state_[ALLEGRO_KEY_LSHIFT])
+				y += translate_diff;
 			
 			if(key_state_[ALLEGRO_KEY_LEFT])
-				cam_.ra += 0.01;
+				ry += rotate_diff;
 			
 			if(key_state_[ALLEGRO_KEY_RIGHT])
-				cam_.ra -= 0.01;
+				ry -= rotate_diff;
+			
+			al_translate_transform_3d(&camera_transform_, x, y, z);
+			al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
+			
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
 		{
@@ -264,7 +291,18 @@ void Renderer::run()
 		{
 			key_state_[ev.keyboard.keycode] = false;
 		}
-
+		else if(ev.type == ALLEGRO_EVENT_MOUSE_AXES)
+		{
+			float dx = ev.mouse.dx, dy = ev.mouse.dy;
+			float ry = dx / al_get_display_width(dpy_), rx = dy / al_get_display_height(dpy_);
+			
+			rx_look -= rx;
+			al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
+//			al_rotate_transform_3d(&camera_transform_, 1.0, 0.0, 0.0, rx);
+			
+			//cam_.rx += dy / al_get_display_height(dpy_);
+			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2.0, al_get_display_height(dpy_)/2.0);
+		}
  
       if(redraw && al_is_event_queue_empty(queue_))
 		{
@@ -275,7 +313,7 @@ void Renderer::run()
 			glClear(GL_DEPTH_BUFFER_BIT);
 			
          redraw = false;
-			al_clear_to_color(al_map_rgb(0,0,0));
+			al_clear_to_color(al_map_rgb(255,255,255));
          draw();
 			
 			al_restore_state(&state);
@@ -305,7 +343,7 @@ void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
 //	al_perspective_transform(m, -500, -500, 1,
 //      500, 500, 10000);
 	
-	double zNear = 1.0, zFar = 1000.0, fov = 45.0, aspect = dw / dh;
+	double zNear = 0.5, zFar = 500.0, fov = 40.0, aspect = dw / dh;
 	
 	double left, right;
 	double bottom, top;
@@ -329,10 +367,13 @@ void Renderer::draw()
 	
 	ALLEGRO_TRANSFORM trans;
 	al_identity_transform(&trans);
+	al_compose_transform(&trans, &camera_transform_);
+	
 	setupProjection(&trans);
 	al_identity_transform(&trans);
-	al_rotate_transform_3d(&trans, cam_.rx, cam_.ry, cam_.rz, cam_.ra);
-	al_translate_transform_3d(&trans, cam_.x, cam_.y, cam_.z);
+	al_rotate_transform_3d(&trans, 1.0, 0.0, 0.0, rx_look);
+	
+	
 	al_use_transform(&trans);
 	
 	glEnable(GL_DEPTH_TEST);
@@ -340,6 +381,7 @@ void Renderer::draw()
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
+	glEnable(GL_ALPHA_TEST);
 	
 	if(!setShader(SHADER_DEFAULT))
 	{

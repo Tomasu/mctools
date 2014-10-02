@@ -59,10 +59,8 @@ class Renderer
 		ALLEGRO_BITMAP *bmp_;
 		ALLEGRO_TRANSFORM al_proj_transform_;
 		
-		struct { 
-			double x, y, z;
-			double rx, ry, rz, ra;
-		} cam_;
+		ALLEGRO_TRANSFORM camera_transform_;
+		float rx_look;
 		
 		ResourceManager *resManager_;
 		
