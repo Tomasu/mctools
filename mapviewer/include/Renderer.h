@@ -3,10 +3,16 @@
 
 #include <unordered_map>
 #include <utility>
+#include <vector>
+#include <queue>
 #include <allegro5/allegro.h>
 
 #include "PairHash.h"
 
+#define DEG_TO_RAD(angle) ((angle) * 180.0 / M_PI)
+
+struct ALLEGRO_FONT;
+class Vector3D;
 class ResourceManager;
 class Level;
 class Map;
@@ -57,14 +63,22 @@ class Renderer
 		ALLEGRO_SHADER *prg_;
 		ALLEGRO_SHADER *al_prg_;
 		ALLEGRO_BITMAP *bmp_;
+		ALLEGRO_FONT *fnt_;
+		
 		ALLEGRO_TRANSFORM al_proj_transform_;
 		
 		ALLEGRO_TRANSFORM camera_transform_;
 		float rx_look;
+		float ry_look;
 		
 		ResourceManager *resManager_;
 		
+		std::queue<std::pair<int32_t, int32_t>> loadChunkQueue;
+		
 		void processChunk(int x, int z);
+		void autoLoadChunks(int x, int z);
+		bool isChunkVisible(Vector3D origin, Vector3D pos);
+		
 		bool chunkDataExists(int32_t x, int32_t z);
 		bool loadShaders(const char *vertex_file_path, const char *fragment_file_path);
 		bool loadAllegroShaders();

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <string.h>
 
-ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size) : vbo_(0), size_(size)
+ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) : vbo_(0), size_(size), x_(x), z_(z)
 {
 	ALLEGRO_VERTEX_ELEMENT elements[] = {
 		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CUSTOM_VERTEX, pos) },
@@ -119,7 +119,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 								tx_yfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
 								tx_x = item.x * tx_xfact;
 								tx_y = item.y * tx_yfact;
-								NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
+								//NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
 							}
 						}
 						else
@@ -140,7 +140,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		}
 	}
 	
-	ChunkData *cdata = new ChunkData(data, total_size);
+	ChunkData *cdata = new ChunkData(data, total_size, c->x(), c->z());
 	delete[] data;
 	
 	return cdata;

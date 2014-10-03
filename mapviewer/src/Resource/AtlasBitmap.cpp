@@ -35,7 +35,7 @@ bool AtlasBitmap::get(uint32_t x, uint32_t y)
 	uint32_t rem = bit & mask;
 	
 	bool ret = (data_[idx] >> (mask - rem)) & 1;
-	NBT_Debug("get: %ix%i bit:%i idx:%i mask:%i rem:%i ret:%i", x, y, bit, idx, mask, rem, ret);
+	//NBT_Debug("get: %ix%i bit:%i idx:%i mask:%i rem:%i ret:%i", x, y, bit, idx, mask, rem, ret);
 	
 	return( ret );
 }
@@ -53,9 +53,9 @@ void AtlasBitmap::set(uint32_t x, uint32_t y)
 	const uint32_t mask = (sizeof(*data_) * 8 - 1);
 	uint32_t rem = bit & mask;
 	
-	NBT_Debug("set: %ix%i bit:%i idx:%i mask:%i rem:%i val:%i %x", x, y, bit, idx, mask, rem, data_[idx]);
+	//NBT_Debug("set: %ix%i bit:%i idx:%i mask:%i rem:%i val:%i %x", x, y, bit, idx, mask, rem, data_[idx]);
 	data_[idx] |= 1LL << (mask - rem);
-	NBT_Debug("set: %x", data_[idx]);
+	//NBT_Debug("set: %x", data_[idx]);
 }
 
 void AtlasBitmap::unset(uint32_t x, uint32_t y)

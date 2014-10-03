@@ -18,14 +18,18 @@ class ChunkData
 		
 		void draw();
 		
+		int32_t x() const { return x_; }
+		int32_t z() const { return z_; }
+		
 	protected:
-		ChunkData(CUSTOM_VERTEX *data, uint32_t size);
+		ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z);
 		~ChunkData();
 		
 	private:
 		ALLEGRO_VERTEX_BUFFER *vbo_;
 		ALLEGRO_VERTEX_DECL *vtxdecl_;
 		uint32_t size_;
+		int32_t x_, z_;
 };
 
 #endif /* CHUNKDATA_H_GUARD */

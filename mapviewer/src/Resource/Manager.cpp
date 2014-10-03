@@ -11,7 +11,7 @@ ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, co
 	baseResourcePath_(base), bitmapSubPath_(bmpSubPath)
 {
 	NBT_Debug("begin");
-	atlas_ = new Atlas(renderer, 64, 16);
+	atlas_ = new Atlas(renderer, 128, 16);
 	renderer_ = renderer;
 	NBT_Debug("end");
 }
