@@ -21,5 +21,5 @@ add_executable(qnbt
 	${MOCSRC}
 )
 
-add_dependencies(qnbt mcmap nbt)
+add_dependencies(qnbt nbt)
 target_link_libraries(qnbt ${QT_LIBRARIES} ${LIBNBT_LIBRARIES})
