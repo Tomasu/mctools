@@ -35,10 +35,10 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 	
 	NBT_Debug("new chunk: size:%.02fMB", ((double)size_*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
 	
-	//for(int i = 0; i < size; i++)
-	//{
-	//	NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
-	//}
+	for(int i = 0; i < size; i++)
+	{
+		NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
+	}
 	
 }
 
