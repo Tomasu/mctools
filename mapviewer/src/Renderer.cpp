@@ -695,6 +695,7 @@ load_fail:
 
 bool Renderer::loadShaders(const char *vertex_file_path, const char *fragment_file_path)
 {
+	const char *slog = nullptr;
 	ALLEGRO_SHADER *prg = al_create_shader(ALLEGRO_SHADER_GLSL);
 	if(!prg)
 		goto load_fail;
@@ -715,6 +716,12 @@ bool Renderer::loadShaders(const char *vertex_file_path, const char *fragment_fi
 	{
 		NBT_Debug("failed to build shader:\n %s", al_get_shader_log(prg));
 		goto load_fail;
+	}
+	
+	slog = al_get_shader_log(prg);
+	if(slog)
+	{
+		NBT_Debug("shader log:\n%s", slog);
 	}
 	
 	/*if(!al_use_shader(prg))
