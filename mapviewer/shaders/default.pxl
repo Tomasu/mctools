@@ -9,7 +9,7 @@ uniform sampler2D atlas_sheet_0;
 
 varying vec2 varying_texcoord;
 varying float varying_tx_page;
-
+varying vec4 varying_color;
 void main()
 {
    vec4 color0 = texture2D(atlas_sheet_0, varying_texcoord);
@@ -31,4 +31,5 @@ void main()
 		gl_FragColor = vec4(1.0,0.5,1.0,0.5);
 
 	//gl_FragColor = vec4(varying_texcoord.xy, 1.0, 1.0);
+	gl_FragColor = varying_color;
 }

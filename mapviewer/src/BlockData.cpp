@@ -107,62 +107,69 @@ uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, flo
 
 uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page)
 {
+	uint8_t r = 0, g = 0, b = 0;
+	
+#define color al_map_rgb(r++,g++,b++)
+//	ALLEGRO_COLOR color = al_map_rgb(0,0,0);
+	
 	CUSTOM_VERTEX vtx[36] = {
 		//front face
 		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
 		//left face (viewers left when looking at front face
 		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ { -0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
 		//right face (viewers right when looking at front face
 		//upper left triangle (viewed face on)
-		{ {  0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ {  0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
 		//back face
 		//upper left triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ {  0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ { -0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
 		//top face
 		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 0.0 }, 0.0 },	//lower right
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
 		//bottom face
 		//upper left triangle (viewed face on)
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 1.0 }, 0.0 },	//upper left
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
 		//lower right triangle (viewed face on)
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0 },	//upper right again
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0 },	//lower left
-		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0 }	//lower right
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color }	//lower right
 	};
+	
+#undef color
 	
 	CUSTOM_VERTEX *ptr = buff;
 	
@@ -176,6 +183,7 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 		// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
 		//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
 		cv.tx_page = tx_page;
+		cv.color = v.color;
 	}
 	
 	return NUM_VERTS;

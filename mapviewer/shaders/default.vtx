@@ -1,10 +1,13 @@
 attribute vec4 al_pos;
 attribute vec2 al_texcoord;
+attribute vec4 al_color;
+
 attribute float al_user_attr_0;
 
 uniform mat4 al_projview_matrix;
 
 varying vec2 varying_texcoord;
+varying vec4 varying_color;
 varying float varying_tx_page;
 
 uniform sampler2D atlas_sheet_0;
@@ -15,6 +18,7 @@ uniform sampler2D atlas_sheet_0;
 void main()
 {
 	varying_tx_page = al_user_attr_0;
+	varying_color = al_color;
    varying_texcoord = al_texcoord;
    gl_Position = al_projview_matrix * al_pos;
 }

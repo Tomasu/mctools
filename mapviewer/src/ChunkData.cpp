@@ -21,6 +21,7 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CUSTOM_VERTEX, pos) },
 		{ ALLEGRO_PRIM_TEX_COORD, ALLEGRO_PRIM_FLOAT_2, offsetof(CUSTOM_VERTEX, txcoord) },
 		{ ALLEGRO_PRIM_USER_ATTR, ALLEGRO_PRIM_FLOAT_1, offsetof(CUSTOM_VERTEX, tx_page) },
+		{ ALLEGRO_PRIM_COLOR_ATTR, ALLEGRO_PRIM_FLOAT_4, offsetof(CUSTOM_VERTEX, color) },
 		{ 0, 0, 0 }
 	};
 	
@@ -33,6 +34,12 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 		NBT_Debug("failed to create vertex buffer :(");
 	
 	NBT_Debug("new chunk: size:%.02fMB", ((double)size_*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
+	
+	//for(int i = 0; i < size; i++)
+	//{
+	//	NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
+	//}
+	
 }
 
 ChunkData::~ChunkData()
@@ -43,7 +50,8 @@ ChunkData::~ChunkData()
 
 void ChunkData::draw()
 {
-	al_draw_vertex_buffer(vbo_, nullptr, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
+	al_draw_vertex_buffer(vbo_, 0, 0, size_-1, ALLEGRO_PRIM_TRIANGLE_LIST);
+	//al_draw_vertex_buffer(vbo_, tex, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
 }
 
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
