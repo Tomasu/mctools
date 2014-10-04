@@ -31,5 +31,5 @@ void main()
 		gl_FragColor = vec4(1.0,0.5,1.0,0.5);
 
 	//gl_FragColor = vec4(varying_texcoord.xy, 1.0, 1.0);
-	gl_FragColor = varying_color;
+	//gl_FragColor = varying_color;
 }
