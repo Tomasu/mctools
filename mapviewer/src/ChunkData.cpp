@@ -119,7 +119,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 								tx_yfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
 								tx_x = item.x * tx_xfact;
 								tx_y = item.y * tx_yfact;
-								//NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
+								NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
 							}
 						}
 						else
