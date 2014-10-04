@@ -723,6 +723,10 @@ bool Renderer::loadShaders(const char *vertex_file_path, const char *fragment_fi
 	{
 		NBT_Debug("shader log:\n%s", slog);
 	}
+	else
+	{
+		NBT_Debug("no shader log");
+	}
 	
 	/*if(!al_use_shader(prg))
 	{
