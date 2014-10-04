@@ -35,10 +35,10 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 	
 	NBT_Debug("new chunk: size:%.02fMB", ((double)size_*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
 	
-	for(int i = 0; i < size; i++)
-	{
-		NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
-	}
+	//for(int i = 0; i < size; i++)
+	//{
+	//	NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
+	//}
 	
 }
 
@@ -76,8 +76,14 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		return nullptr;
 	}
 	
+	int slice_num = 0;
 	for(auto &section_tag: sections->items())
 	{
+		if(slice_num >= 1)
+			break;
+		
+		slice_num++;
+		
 		NBT_Tag_Compound *section = (NBT_Tag_Compound *)section_tag;
 		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
 		int32_t y = section->getByte("Y") * 16;
