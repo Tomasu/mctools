@@ -14,7 +14,7 @@ AtlasSheet::AtlasSheet(uint32_t id, uint32_t maxSz, uint32_t gridSz) :
 	ALLEGRO_STATE state;
 	al_store_state(&state, ALLEGRO_STATE_TARGET_BITMAP);
 	al_set_target_bitmap(sheet_);
-	al_clear_to_color(al_map_rgba(0,0,0,0));
+	al_clear_to_color(al_map_rgba(1.0,1.0,1.0,0));
 	al_restore_state(&state);
 	NBT_Debug("end");
 }
