@@ -89,6 +89,16 @@ void ChunkData::draw(ALLEGRO_TRANSFORM *trans)
 	}
 }
 
+struct BLOCK_SIDES {
+	uint8_t top : 1;
+	uint8_t bottom : 1;
+	uint8_t north : 1;
+	uint8_t east : 1;
+	uint8_t south : 1;
+	uint8_t west : 1;
+	uint8_t dummy : 2;
+};
+
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 {
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
@@ -117,11 +127,91 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 	
 	// TODO: maybe allow putting more than one section per slice if we end up with more than 16 sections.
 	//  currently minecraft only uses 16 sections per chunk.
-	assert(num_sections <= MAX_SLICES);
+	//assert(num_sections <= MAX_SLICES);
 
 	ChunkData *cdata = new ChunkData(c->x(), c->z());
 	
 	CUSTOM_VERTEX *dptr = data; // reset dptr, reuse data memory.
+	
+	BLOCK_SIDES cull_sides[16*16][16][16];
+	memset(cull_sides, 0x00, sizeof(cull_sides));
+	
+	for(uint32_t i = 0; i < num_sections; i++)
+	{
+		NBT_Tag_Compound *section = (NBT_Tag_Compound *)sections[i];
+		
+		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
+		NBT_Tag_Byte_Array *add = section->getByteArray("Add");
+		
+		int32_t section_y = section->getByte("Y");
+		int32_t y = section_y * 16;
+		
+		uint8_t *block_data = blocks->data();
+		uint8_t *add_data = add ? add->data() : nullptr;
+		
+		for(int dy = 0; dy < 16; dy++)
+		{
+			for(int dz = 0; dz < 16; dz++)
+			{
+				for(int dx = 0; dx < 16; dx++)
+				{
+					int idx = dy*16*16 + dz*16 + dx;
+					
+					int idx_down = (dy-1)*16*16 + dz*16 + dx;
+					int idx_up = (dy+1)*16*16 + dz*16 + dx;
+					int idx_north = dy*16*16 + (dz-1)*16 + dx;
+					int idx_south = dy*16*16 + (dz+1)*16 + dx;
+					int idx_west = dy*16*16 + dz*16 + (dx-1);
+					int idx_east = dy*16*16 + dz*16 + (dx+1);
+					
+					
+					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
+					
+					if(!BlockData::isSolid(blkid))
+					{
+						//bs.all = 0;
+						cull_sides[y+dy][dz][dx].top = 1;
+						cull_sides[y+dy][dz][dx].bottom = 1;
+						cull_sides[y+dy][dz][dx].north = 1;
+						cull_sides[y+dy][dz][dx].east = 1;
+						cull_sides[y+dy][dz][dx].south = 1;
+						cull_sides[y+dy][dz][dx].west = 1;
+						continue;
+					}
+					
+					if(idx_up >= 0 && idx_up < 4096)
+					{
+						cull_sides[y+dy+1][dz][dx].bottom = 1;
+					}
+					
+					if(idx_down >= 0 && idx_down < 4096)
+					{
+						cull_sides[y+dy-1][dz][dx].top = 1;
+					}
+					
+					if(idx_north >= 0 && idx_north < 4096)
+					{
+						cull_sides[y+dy][dz-1][dx].south = 1;
+					}
+					
+					if(idx_east >= 0 && idx_east < 4096)
+					{
+						cull_sides[y+dy][dz][dx+1].west = 1;
+					}
+					
+					if(idx_south >= 0 && idx_south < 4096)
+					{
+						cull_sides[y+dy][dz+1][dx].north = 1;
+					}
+					
+					if(idx_west >= 0 && idx_west < 4096)
+					{
+						cull_sides[y+dy][dz][dx-1].east = 1;
+					}
+				}
+			}
+		}
+	}
 	
 	for(uint32_t i = 0; i < num_sections; i++)
 	{
@@ -160,45 +250,17 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
 					
-					if(blkid != BLOCK_AIR)
-						NBT_Debug("blk: %i", blkid);
+					//if(!BlockData::isSolidForCull(blkid))
+					//	continue;
 					
-					if(!BlockData::isSolid(blkid))
+				//	NBT_Debug("sides: %x", block_sides[dy][dz][dx].all);
+					
+					if(cull_sides[y+dy][dz][dx].top == 1 && cull_sides[y+dy][dz][dx].bottom == 1
+						&& cull_sides[y+dy][dz][dx].north == 1 && cull_sides[y+dy][dz][dx].east == 1 
+						&& cull_sides[y+dy][dz][dx].south == 1 && cull_sides[y+dy][dz][dx].west == 1 
+					)
 						continue;
 					
-					bool up_solid = false, down_solid = false, north_solid = false, west_solid = false, south_solid = false, east_solid = false;
-					
-					//if(!BlockData::isTranslucent(block_data[idx])
-					if(idx_down  < 4096 && idx_down  >= 0)
-						down_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_down));
-					
-					if(idx_up < 4096 && idx_up >= 0)
-						up_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_up));
-					
-					if(idx_east  < 4096 && idx_east  >= 0)
-						east_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_east));
-					
-					if(idx_west  < 4096 && idx_west  >= 0)
-						west_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_west));
-					
-					if(idx_north < 4096 && idx_north >= 0)
-						north_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_north));
-					
-					if(idx_south < 4096 && idx_south >= 0)
-						south_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_south));
-					
-					//NBT_Debug("up:%i down:%i north:%i east:%i south:%i west:%i", up_solid, down_solid, north_solid, east_solid, south_solid, west_solid);
-					
-					if(up_solid && down_solid && north_solid && east_solid && south_solid && west_solid)
-					{
-						NBT_Debug(
-							"up[%i]: %s, down[%i]: %s, north[%i]: %s, east[%i]: %s, south[%i]: %s, west[%i]: %s",
-							idx_up, BlockName(block_data[idx_up]), idx_down, BlockName(block_data[idx_down]), idx_north, BlockName(block_data[idx_north]), 
-							idx_east, BlockName(block_data[idx_east]), idx_south, BlockName(block_data[idx_south]), idx_west, BlockName(block_data[idx_west])
-						);
-						//NBT_Debug("block is surrounded, skip.");
-						continue;
-					}
 					// FIXME: create a cache of these things.
 					
 					BlockData *block = BlockData::Create(block_data[idx], 0);
@@ -251,15 +313,17 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		}
 		
 #ifdef VIEWER_USE_MORE_VBOS
-		if(!cdata->fillSlice(section_y, data, total_size))
-			NBT_Warn("failed to fill slice %i???", y);
+		if(total_size > 0)
+			if(!cdata->fillSlice(section_y, data, total_size))
+				NBT_Warn("failed to fill slice %i???", y);
 #endif
 		
 	}
 	
 #ifndef VIEWER_USE_MORE_VBOS
-	if(!cdata->fillSlice(0, data, total_size))
-		NBT_Warn("failed to fill chunk data");
+	if(total_size)
+		if(!cdata->fillSlice(0, data, total_size))
+			NBT_Warn("failed to fill chunk data");
 #endif
 	
 	delete[] data;
