@@ -497,7 +497,8 @@ void Renderer::draw()
 		al_identity_transform(&ctrans);
 		al_translate_transform_3d(&ctrans, chunk->x()*15.0, 0.0, chunk->z()*15.0);
 		al_use_transform(&ctrans);
-		chunk->draw();
+		
+		chunk->draw(&ctrans);
 	}
 	
 	glBindVertexArray(0);

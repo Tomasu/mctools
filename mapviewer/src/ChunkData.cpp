@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <string.h>
 
-ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) : vbo_(0), size_(size), x_(x), z_(z)
+ChunkData::ChunkData(int32_t x, int32_t z) : x_(x), z_(z)
 {
 	ALLEGRO_VERTEX_ELEMENT elements[] = {
 		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CUSTOM_VERTEX, pos) },
@@ -29,11 +29,7 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 	if(!vtxdecl_)
 		NBT_Debug("failed to create vertex decl");
 	
-	vbo_ = al_create_vertex_buffer(vtxdecl_, data, size_, 0);
-	if(!vbo_)
-		NBT_Debug("failed to create vertex buffer :(");
-	
-	NBT_Debug("new chunk: size:%.02fMB", ((double)size_*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
+	memset(slice_, 0, sizeof(slice_));
 	
 	//for(int i = 0; i < size; i++)
 	//{
@@ -44,51 +40,103 @@ ChunkData::ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z) :
 
 ChunkData::~ChunkData()
 {
-	al_destroy_vertex_buffer(vbo_);
+	for(int i = 0; i < MAX_SLICES; i++)
+	{
+		auto &slice = slice_[i];
+		al_destroy_vertex_buffer(slice.vbo);
+	}
+	
 	al_destroy_vertex_decl(vtxdecl_);
 }
 
-void ChunkData::draw()
+bool ChunkData::fillSlice(int slice_idx, CUSTOM_VERTEX* data, uint32_t vtx_count)
 {
-	al_draw_vertex_buffer(vbo_, 0, 0, size_-1, ALLEGRO_PRIM_TRIANGLE_LIST);
-	//al_draw_vertex_buffer(vbo_, tex, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
+	NBT_Debug("slice_idx:%i", slice_idx);
+	assert(slice_idx >= 0 && slice_idx < MAX_SLICES);
+	
+	auto &slice = slice_[slice_idx];
+	assert(slice.vbo == nullptr); // if true, we have a duplicate section :o
+	
+	slice.vtx_count = vtx_count;
+	
+	slice.vbo = al_create_vertex_buffer(vtxdecl_, data, slice.vtx_count, 0);
+	if(!slice.vbo)
+		NBT_Debug("failed to create vertex buffer :(");
+	
+	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice, ((double)slice.vtx_count*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
+	
+	return true;
+}
+
+
+void ChunkData::draw(ALLEGRO_TRANSFORM *trans)
+{
+	for(int32_t i = 0; i < MAX_SLICES; i++)
+	{
+		auto &slice = slice_[i];
+		if(!slice.vbo)
+			break;
+		
+		// do translation here >:(
+		
+		ALLEGRO_TRANSFORM local_transform;
+		al_copy_transform(&local_transform, trans);
+		al_translate_transform_3d(&local_transform, 0.0, -slice.y, 0.0);
+		al_use_transform(&local_transform);
+		
+		al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count-1, ALLEGRO_PRIM_TRIANGLE_LIST);
+		//al_draw_vertex_buffer(vbo_, tex, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
+	}
 }
 
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 {
-	CUSTOM_VERTEX *data = new CUSTOM_VERTEX[MAX_VERTS];
+	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
+	CUSTOM_VERTEX *data = new CUSTOM_VERTEX[DATA_VTX_COUNT];
 	if(!data)
 		return nullptr;
-	
-	CUSTOM_VERTEX *dptr = data;
+		
+	memset(data, 0, DATA_VTX_COUNT * sizeof(CUSTOM_VERTEX));
 	
 	NBT_Tag_Compound *nbt = c->nbt()->getCompound("Level");
 	//NBT_Debug("%ix%i level name: %s children:%i", c->x(), c->z(), nbt->name().c_str(), nbt->count());
-	NBT_Tag_List *sections = (NBT_Tag_List*)nbt->get("Sections");
+	NBT_Tag_List *sections_tag = (NBT_Tag_List*)nbt->get("Sections");
 	int32_t xPos = nbt->getInt("xPos");
 	int32_t zPos = nbt->getInt("zPos");
 	
 	uint32_t total_size = 0;
 	
-	if(!sections)
+	if(!sections_tag)
 	{
 		NBT_Debug("no sections tag?");
 		return nullptr;
 	}
+
+	auto &sections = sections_tag->items();
+	uint32_t num_sections = sections.size();
 	
-	int slice_num = 0;
-	for(auto &section_tag: sections->items())
+	// TODO: maybe allow putting more than one section per slice if we end up with more than 16 sections.
+	//  currently minecraft only uses 16 sections per chunk.
+	assert(num_sections <= MAX_SLICES);
+
+	ChunkData *cdata = new ChunkData(c->x(), c->z());
+	
+	CUSTOM_VERTEX *dptr = data; // reset dptr, reuse data memory.
+	
+	for(uint32_t i = 0; i < num_sections; i++)
 	{
-		if(slice_num >= 1)
-			break;
+		NBT_Tag_Compound *section = (NBT_Tag_Compound *)sections[i];
 		
-		slice_num++;
-		
-		NBT_Tag_Compound *section = (NBT_Tag_Compound *)section_tag;
 		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
-		int32_t y = section->getByte("Y") * 16;
+		int32_t section_y = section->getByte("Y");
+		int32_t y = section_y * 16;
 		
 		uint8_t *block_data = blocks->data();
+	
+#ifdef VIEWER_USE_MORE_VBOS
+		dptr = data;
+		total_size = 0;
+#endif
 		
 		for(int dy = 0; dy < 16; dy++)
 		{
@@ -152,9 +200,19 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 				}
 			}
 		}
+		
+#ifdef VIEWER_USE_MORE_VBOS
+		if(!cdata->fillSlice(section_y, data, total_size))
+			NBT_Warn("failed to fill slice %i???", y);
+#endif
+		
 	}
 	
-	ChunkData *cdata = new ChunkData(data, total_size, c->x(), c->z());
+#ifndef VIEWER_USE_MORE_VBOS
+	if(!cdata->fillSlice(0, data, total_size))
+		NBT_Warn("failed to fill chunk data");
+#endif
+	
 	delete[] data;
 	
 	return cdata;

@@ -13,23 +13,33 @@ class ChunkData
 {
 	public:
 		static const uint32_t MAX_VERTS = 2359296; // half of the max amount a chunk can possibly fill
-		
+#ifdef VIEWER_USE_MORE_VBOS
+		static const int32_t MAX_SLICES = 16;
+#else
+		static const int32_t MAX_SLICES = 1;
+#endif		
 		static ChunkData *Create(Chunk *c, ResourceManager *rm);
 		
-		void draw();
+		void draw(ALLEGRO_TRANSFORM *transform);
 		
 		int32_t x() const { return x_; }
 		int32_t z() const { return z_; }
 		
+		bool fillSlice(int slice, CUSTOM_VERTEX *data, uint32_t size);
+		
 	protected:
-		ChunkData(CUSTOM_VERTEX *data, uint32_t size, int32_t x, int32_t z);
+		ChunkData(int32_t x, int32_t z);
 		~ChunkData();
 		
 	private:
-		ALLEGRO_VERTEX_BUFFER *vbo_;
 		ALLEGRO_VERTEX_DECL *vtxdecl_;
-		uint32_t size_;
 		int32_t x_, z_;
+				
+		struct {
+			int32_t y;
+			ALLEGRO_VERTEX_BUFFER *vbo;
+			uint32_t vtx_count;
+		} slice_[MAX_SLICES];
 };
 
 #endif /* CHUNKDATA_H_GUARD */
