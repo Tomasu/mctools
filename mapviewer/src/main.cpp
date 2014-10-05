@@ -99,7 +99,7 @@ int main(int argc, const char **argv)
 	
 	renderer->run();
 	NBT_Debug("eor");
-	
+
 	delete renderer;
 	delete level;
 	

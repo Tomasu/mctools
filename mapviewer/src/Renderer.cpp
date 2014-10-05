@@ -428,6 +428,9 @@ void Renderer::run()
 	al_stop_timer(tmr_);
 	
 	NBT_Debug("end");
+	
+		
+	NBT_Debug("sizeof GL_FLOAT: %i", sizeof(GLfloat));
 }
 
 void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
@@ -580,7 +583,7 @@ void Renderer::autoLoadChunks(int x, int y)
 	dirVec.normalize();
 	NBT_Debug("dir: %f,%f", dirVec.x, dirVec.y);
 	
-	Vector3D originVec = Vector3D{ x, y, 0.0};//dirVec; 
+	Vector3D originVec = Vector3D{ (float)x, (float)y, 0.0};//dirVec; 
 	//originVec += Vector3D{ x, y, 0.0 };     // create vector based on given x,y and current direction
 	//originVec = Vector3D{ x, y, 0.0};
 	

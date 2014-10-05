@@ -51,7 +51,7 @@ ChunkData::~ChunkData()
 
 bool ChunkData::fillSlice(int slice_idx, CUSTOM_VERTEX* data, uint32_t vtx_count)
 {
-	NBT_Debug("slice_idx:%i", slice_idx);
+	//NBT_Debug("slice_idx:%i", slice_idx);
 	assert(slice_idx >= 0 && slice_idx < MAX_SLICES);
 	
 	auto &slice = slice_[slice_idx];
@@ -63,7 +63,7 @@ bool ChunkData::fillSlice(int slice_idx, CUSTOM_VERTEX* data, uint32_t vtx_count
 	if(!slice.vbo)
 		NBT_Debug("failed to create vertex buffer :(");
 	
-	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice, ((double)slice.vtx_count*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
+	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice_idx, ((double)slice.vtx_count*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
 	
 	return true;
 }
@@ -128,11 +128,14 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		NBT_Tag_Compound *section = (NBT_Tag_Compound *)sections[i];
 		
 		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
+		NBT_Tag_Byte_Array *add = section->getByteArray("Add");
+		
 		int32_t section_y = section->getByte("Y");
 		int32_t y = section_y * 16;
 		
 		uint8_t *block_data = blocks->data();
-	
+		uint8_t *add_data = add ? add->data() : nullptr;
+		
 #ifdef VIEWER_USE_MORE_VBOS
 		dptr = data;
 		total_size = 0;
@@ -145,11 +148,57 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 				for(int dx = 0; dx < 16; dx++)
 				{
 					int idx = dy*16*16 + dz*16 + dx;
+					
+					int idx_down = (dy-1)*16*16 + dz*16 + dx;
+					int idx_up = (dy+1)*16*16 + dz*16 + dx;
+					int idx_north = dy*16*16 + (dz-1)*16 + dx;
+					int idx_south = dy*16*16 + (dz+1)*16 + dx;
+					int idx_west = dy*16*16 + dz*16 + (dx-1);
+					int idx_east = dy*16*16 + dz*16 + (dx+1);
+					
 					float tx_xfact = 0.0, tx_yfact = 0.0, tx_page = 0.0, tx_x = 0.0, tx_y = 0.0;
 					
-					if(block_data[idx] == BLOCK_AIR)
+					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
+					
+					if(blkid != BLOCK_AIR)
+						NBT_Debug("blk: %i", blkid);
+					
+					if(!BlockData::isSolid(blkid))
 						continue;
 					
+					bool up_solid = false, down_solid = false, north_solid = false, west_solid = false, south_solid = false, east_solid = false;
+					
+					//if(!BlockData::isTranslucent(block_data[idx])
+					if(idx_down  < 4096 && idx_down  >= 0)
+						down_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_down));
+					
+					if(idx_up < 4096 && idx_up >= 0)
+						up_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_up));
+					
+					if(idx_east  < 4096 && idx_east  >= 0)
+						east_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_east));
+					
+					if(idx_west  < 4096 && idx_west  >= 0)
+						west_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_west));
+					
+					if(idx_north < 4096 && idx_north >= 0)
+						north_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_north));
+					
+					if(idx_south < 4096 && idx_south >= 0)
+						south_solid = BlockData::isSolidForCull(BlockData::ID(block_data, add_data, idx_south));
+					
+					//NBT_Debug("up:%i down:%i north:%i east:%i south:%i west:%i", up_solid, down_solid, north_solid, east_solid, south_solid, west_solid);
+					
+					if(up_solid && down_solid && north_solid && east_solid && south_solid && west_solid)
+					{
+						NBT_Debug(
+							"up[%i]: %s, down[%i]: %s, north[%i]: %s, east[%i]: %s, south[%i]: %s, west[%i]: %s",
+							idx_up, BlockName(block_data[idx_up]), idx_down, BlockName(block_data[idx_down]), idx_north, BlockName(block_data[idx_north]), 
+							idx_east, BlockName(block_data[idx_east]), idx_south, BlockName(block_data[idx_south]), idx_west, BlockName(block_data[idx_west])
+						);
+						//NBT_Debug("block is surrounded, skip.");
+						continue;
+					}
 					// FIXME: create a cache of these things.
 					
 					BlockData *block = BlockData::Create(block_data[idx], 0);

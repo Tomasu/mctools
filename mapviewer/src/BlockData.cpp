@@ -1,6 +1,7 @@
 #include "BlockData.h"
 #include <Resource/Manager.h>
 #include "BlockMaps.h"
+#include "Block.h"
 #include "CustomVertex.h"
 
 BlockData::BlockData()
@@ -13,9 +14,35 @@ BlockData::~BlockData()
 	
 }
 
-BlockData *BlockData::Create(uint32_t blkid, uint32_t)
+bool BlockData::isSolidForCull(uint32_t blockid)
 {
-	switch(blkid)
+	return isSolid(blockid) && !isTranslucent(blockid);
+}
+
+bool BlockData::isTranslucent(uint32_t blockid)
+{
+	switch(blockid)
+	{
+		case BLOCK_AIR:
+		case BLOCK_WATER:
+		case BLOCK_FLOWING_WATER:
+		case BLOCK_LAVA:
+		case BLOCK_FLOWING_LAVA:
+			return true;
+			
+		default:
+			return false;
+	}
+	
+	return false;
+}
+
+bool BlockData::isSolid(uint32_t blockid)
+{
+	if(blockid == BLOCK_AIR)
+		return false;
+	
+	switch(blockid)
 	{
 		case BLOCK_STONE:
 		case BLOCK_GRASS:
@@ -90,11 +117,29 @@ BlockData *BlockData::Create(uint32_t blkid, uint32_t)
 		case BLOCK_HAY_BLOCK:
 		case BLOCK_HARDENED_CLAY:
 		case BLOCK_COAL_BLOCK:
+		case BLOCK_COAL_ORE:
+		case BLOCK_IRON_ORE:
+		case BLOCK_GOLD_ORE:
 		case BLOCK_PACKED_ICE:
-			return new SolidBlockData();
+		case BLOCK_FLOWING_LAVA:
+		case BLOCK_LAVA:
+		case BLOCK_FLOWING_WATER:
+		case BLOCK_WATER:
+			return true;
 		default:
-			return new UnknownBlockData();
+			//NBT_Debug("!solid: %s", BlockName(blockid));
+			return false;
 	}
+	
+	return false;
+}
+
+BlockData *BlockData::Create(uint32_t blkid, uint32_t)
+{
+	if(isSolid(blkid))
+		return new SolidBlockData();
+	else
+		return new UnknownBlockData();
 	
 	// unreachable >:(
 	return nullptr;
