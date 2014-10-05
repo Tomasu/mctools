@@ -535,7 +535,7 @@ void Renderer::drawHud()
 	if(!resManager_->getAtlas()->getSheet(0)->alBitmap())
 		NBT_Debug("no sheet bitmap????");
 	
-	//al_use_shader(nullptr);
+	//al_use_shader(nullptr);section_y
 	ALLEGRO_BITMAP *tex = resManager_->getAtlas()->getSheet(0)->alBitmap();
 	//glActiveTexture(GL_TEXTURE0);
 	//glBindTexture(GL_TEXTURE_2D, al_get_opengl_texture(tex));
@@ -769,7 +769,7 @@ void Renderer::unsetShaderSampler(AtlasSheet* sheet)
 	sstr << "atlas_sheet_";
 	sstr << sheet->id();
 	
-	if(!al_set_shader_sampler(sstr.str().c_str(), nullptr, sheet->id()+1))
+	if(!al_set_shader_sampler(sstr.str().c_str(), nullptr, sheet->id()))
 	{
 		NBT_Debug("failed to unset sampler %s", sstr.str().c_str());
 	}
@@ -781,7 +781,7 @@ bool Renderer::setShaderSampler(AtlasSheet *sheet)
 	sstr << "atlas_sheet_";
 	sstr << sheet->id();
 	
-	if(!al_set_shader_sampler(sstr.str().c_str(), sheet->alBitmap(), sheet->id()+1))
+	if(!al_set_shader_sampler(sstr.str().c_str(), sheet->alBitmap(), sheet->id()))
 	{
 		NBT_Debug("failed to set sampler %s", sstr.str().c_str());
 		return false;
