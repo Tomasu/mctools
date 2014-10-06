@@ -262,15 +262,22 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						continue;
 					
 					// FIXME: create a cache of these things.
-					
-					BlockData *block = BlockData::Create(block_data[idx], 0);
-					if(!block)
-						continue;
-					
+
 					std::string resName = "blocks/";
 					std::string texName = BlockTexName(block_data[idx], 0);
 					
 					resName += texName;
+					
+					std::string modName = "block/";
+					modName += BlockTexName(block_data[idx], 0);
+					
+					Resource::ID rid = resourceManager->getModel(modName);
+						
+					BlockData *block = BlockData::Create(block_data[idx], 0);
+					if(!block)
+						continue;
+					
+
 					if(texName.length())
 					{
 						//NBT_Debug("blockName: %s", resName.c_str());

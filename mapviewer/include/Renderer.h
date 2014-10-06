@@ -8,8 +8,7 @@
 #include <allegro5/allegro.h>
 
 #include "PairHash.h"
-
-#define DEG_TO_RAD(angle) ((angle) * 180.0 / M_PI)
+#include "Util.h"
 
 struct ALLEGRO_FONT;
 class Vector3D;

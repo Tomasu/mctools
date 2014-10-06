@@ -7,11 +7,13 @@ set(VIEWER_HEADERS
 	include/Renderer.h
 	include/BlockData.h
 	include/ChunkData.h
+	include/MCModel.h
 	include/Resource/Atlas.h
 	include/Resource/AtlasSheet.h
 	include/Resource/AtlasBitmap.h
 	include/Resource/Bitmap.h
 	include/Resource/Manager.h
+	include/Resource/Model.h
 )
 
 set(VIEWER_SOURCE 
@@ -20,11 +22,13 @@ set(VIEWER_SOURCE
 	src/Renderer.cpp
 	src/ChunkData.cpp
 	src/BlockData.cpp
+	src/MCModel.cpp
 	src/Resource/Manager.cpp
 	src/Resource/Resource.cpp
 	src/Resource/Atlas.cpp
 	src/Resource/AtlasSheet.cpp
 	src/Resource/AtlasBitmap.cpp
+	src/Resource/Model.cpp
 	shaders/default.vtx
 	shaders/default.pxl
 )

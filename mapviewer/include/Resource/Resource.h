@@ -9,7 +9,8 @@ class Resource
 		typedef uint32_t ID;
 		enum Type {
 			NoneType = 0,
-			BitmapType = 1
+			BitmapType = 1,
+			ModelType = 2
 		};
 		
 		Resource(Type type, const std::string &path) : id_(0), refcnt_(0), type_(type), path_(path) { id_ = NextID(); }

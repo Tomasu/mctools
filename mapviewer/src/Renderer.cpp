@@ -18,6 +18,8 @@
 #include "Map.h"
 #include "Vector.h"
 
+#include "MCModel.h"
+
 #include "NBT_Debug.h"
 
 Renderer::Renderer() : level_(nullptr), queue_(nullptr), tmr_(nullptr), dpy_(nullptr)
@@ -174,6 +176,11 @@ bool Renderer::init()
 		NBT_Debug("failed to create silly bitmap");
 		goto init_failed;
 	}
+	
+	//{
+	//	MCModel *test_model = MCModel::Create("block/hopper_down", resManager_);
+	//	test_model->dump();
+	//}
 	
 	al_set_target_bitmap(bmp);
 	al_clear_to_color(al_map_rgb(255,255,255));
@@ -578,7 +585,7 @@ void Renderer::processChunk(int x, int z)
 
 void Renderer::autoLoadChunks(int x, int y)
 {
-	// get the actual direction we are facing in the x and z axis[s]
+	// get the actual platform\almsvc.hdirection we are facing in the x and z axis[s]
 	Vector3D dirVec { camera_transform_.m[2][0], camera_transform_.m[2][2], 0.0 };
 	dirVec.normalize();
 	NBT_Debug("dir: %f,%f", dirVec.x, dirVec.y);

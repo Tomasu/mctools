@@ -2,13 +2,21 @@
 #include "Resource/Resource.h"
 #include "Resource/Bitmap.h"
 #include "Resource/Atlas.h"
+#include <Resource/Model.h>
 #include <Renderer.h>
+#include <MCModel.h>
 
 #include <allegro5/allegro.h>
 #include "NBT_Debug.h"
 
-ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, const std::string &bmpSubPath) :
-	baseResourcePath_(base), bitmapSubPath_(bmpSubPath)
+#include <stdio.h>
+#include "rapidjson/document.h"
+#include "rapidjson/filereadstream.h"
+#include "rapidjson/error/error.h"
+#include "rapidjson/error/en.h"
+
+ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, const std::string &bmpSubPath, const std::string &modelSubPath) :
+	baseResourcePath_(base), bitmapSubPath_(bmpSubPath), modelSubPath_(modelSubPath)
 {
 	NBT_Debug("begin");
 	atlas_ = new Atlas(renderer, 128, 16);
@@ -19,6 +27,21 @@ ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, co
 ResourceManager::~ResourceManager()
 {
 	delete atlas_;
+	
+	for(auto doc: jsonDocCache_)
+	{
+		delete doc.second;
+	}
+	
+	for(auto res: resToUnload_)
+	{
+		delete res.second;
+	}
+	
+	for(auto res: resources_)
+	{
+		delete res.second;
+	}
 }
 
 std::string ResourceManager::bmpPath(const std::string &name)
@@ -29,6 +52,11 @@ std::string ResourceManager::bmpPath(const std::string &name)
 std::string ResourceManager::resPath(const std::string &name)
 {
 	return baseResourcePath_ + "/" + name;
+}
+
+std::string ResourceManager::modelPath(const std::string &name)
+{
+	return modelSubPath_ + "/" + name;
 }
 
 Resource *ResourceManager::findResource(Resource::ID id)
@@ -120,6 +148,7 @@ bool ResourceManager::putResource(Resource::ID id)
 	{
 		resToUnload_.emplace(res->path(), res);
 		resources_.erase(id);
+		delete res;
 		return true;
 	}
 	
@@ -221,6 +250,59 @@ bool ResourceManager::putBitmap(Resource::ID id)
 	return true;
 }
 
+Resource::ID ResourceManager::getModel(const std::string& name)
+{
+	std::string path = modelPath(name);
+	std::string fpath = resPath(path);
+	
+	ResourceModel *model = nullptr;
+	
+	Resource::ID rID = findID(fpath);
+	if(rID != Resource::INVALID_ID)
+	{
+		Resource *res = findResource(rID);
+		if(res)
+		{
+			if(res->type() != Resource::ModelType)
+				return Resource::INVALID_ID;
+			
+			res->ref();
+			return res->id();
+		}
+		
+		auto it = resToUnload_.find(fpath);
+		if(it != resToUnload_.end() && it->second == nullptr)
+			return Resource::INVALID_ID;
+		
+		model = dynamic_cast<ResourceModel*>(it->second);
+		if(!model)
+			return Resource::INVALID_ID;
+		
+		resToUnload_.erase(it);
+	}
+	else
+	{
+		MCModel *mcmod = MCModel::Create(name, this);
+		if(!mcmod)
+		{
+			NBT_Debug("failed to load model %s", fpath.c_str());
+			return Resource::INVALID_ID;
+		}
+		
+		model = new ResourceModel(fpath, mcmod);
+	}
+	
+	resources_.emplace(model->id(), model);
+	nameToIDMap_.emplace(fpath, model->id());
+	
+	return model->id();
+}
+
+bool ResourceManager::putModel(Resource::ID id)
+{
+	return putResource(id);
+}
+
 bool ResourceManager::resourceIsPinned(Resource::ID id)
 {
 	Resource *res = findResource(id);
@@ -274,4 +356,38 @@ bool ResourceManager::setAtlasUniforms()
 	//NBT_Debug("end");
 	return true;
 }
+
+
+rapidjson::Document *ResourceManager::getJson(const std::string& name)
+{
+	// cache ftw
+	std::string path = resPath(modelPath(name));
+	NBT_Debug("attempting to fetch %s json", name.c_str());
+	
+	auto it = jsonDocCache_.find(path);
+	if(it != jsonDocCache_.end() && it->second)
+		return it->second;
+	
+	path += ".json";
+	FILE *fh = fopen(path.c_str(), "r");
+	if(!fh)
+		return nullptr;
+	
+	char buffer[1024];
+	
+	rapidjson::FileReadStream istream{ fh, buffer, sizeof(buffer) };
+	
+	rapidjson::Document *doc = new rapidjson::Document;
+	jsonDocCache_.emplace(path, doc);
+	
+	doc->ParseStream(istream);
+	if(doc->HasParseError())
+	{
+		const char *errstr = rapidjson::GetParseError_En(doc->GetParseError());
+		NBT_Error("error parsing json: %s", errstr);
+	}
+	
+	return jsonDocCache_[path];
+}
+
 

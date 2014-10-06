@@ -15,6 +15,8 @@ else()
    add_definitions(-O2 -s -march=native)
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/vendor/rapidjson/include)
+
 add_definitions(-Wextra -Wall -pipe -std=gnu++11)
 
 # tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()
