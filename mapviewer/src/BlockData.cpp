@@ -3,6 +3,70 @@
 #include "BlockMaps.h"
 #include "Block.h"
 #include "CustomVertex.h"
+#include <algorithm>
+
+namespace
+{
+	#define color al_map_rgb(0,0,0)
+
+	CUSTOM_VERTEX face_vtx[36] = {
+		//front face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
+		//left face (viewers left when looking at front face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
+		//right face (viewers right when looking at front face
+		//upper left triangle (viewed face on)
+		{ {  0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
+		//back face
+		//upper left triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ { -0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
+		//top face
+		//upper left triangle (viewed face on)
+		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5, 0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
+		//bottom face
+		//upper left triangle (viewed face on)
+		{ { -0.5,-0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
+		//lower right triangle (viewed face on)
+		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
+		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
+		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color }	//lower right
+	};
+	#undef color
+}
 
 BlockData::BlockData()
 {
@@ -145,80 +209,38 @@ BlockData *BlockData::Create(uint32_t blkid, uint32_t)
 	return nullptr;
 }
 
-uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, float, float, float, float, float)
+uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, float, float, float, float, float, uint8_t)
 {
 	return 0;
 }
 
-uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page)
+uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask)
 {
 	uint8_t r = 0, g = 0, b = 0;
+	uint8_t side_count = 0;
 	
-#define color al_map_rgb(r++,g++,b++)
+
 //	ALLEGRO_COLOR color = al_map_rgb(0,0,0);
 	
-	CUSTOM_VERTEX vtx[36] = {
-		//front face
-		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
-		//left face (viewers left when looking at front face
-		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ { -0.5, 0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ { -0.5,-0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
-		//right face (viewers right when looking at front face
-		//upper left triangle (viewed face on)
-		{ {  0.5, 0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ {  0.5,-0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
-		//back face
-		//upper left triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ {  0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ { -0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
-		//top face
-		//upper left triangle (viewed face on)
-		{ { -0.5, 0.5,-0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ {  0.5, 0.5,-0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ { -0.5, 0.5, 0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5, 0.5, 0.5 }, { 1.0, 0.0 }, 0.0, color },	//lower right
-		//bottom face
-		//upper left triangle (viewed face on)
-		{ { -0.5,-0.5, 0.5 }, { 0.0, 1.0 }, 0.0, color },	//upper left
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right
-		//lower right triangle (viewed face on)
-		{ {  0.5,-0.5, 0.5 }, { 1.0, 1.0 }, 0.0, color },	//upper right again
-		{ { -0.5,-0.5,-0.5 }, { 0.0, 0.0 }, 0.0, color },	//lower left
-		{ {  0.5,-0.5,-0.5 }, { 1.0, 0.0 }, 0.0, color }	//lower right
-	};
+	for (int32_t i = 0; i < 6; ++i)
+		if (side_mask & (1 << i))
+			++side_count;
+	
+	uint8_t vtx_count = side_count * 6;
+		
+	CUSTOM_VERTEX vtx[vtx_count];
+	
+	for (int32_t i = 0; i < 6; ++i)
+	{
+		if (side_mask & (1 << i))
+			std::copy(face_vtx + (6 * i), face_vtx + (6 * i) + 6, vtx + (6 * i));
+	}
 	
 #undef color
 	
 	CUSTOM_VERTEX *ptr = buff;
 	
-	for(int i = 0; i < 36; i++)
+	for(int i = 0; i < vtx_count; i++)
 	{
 		CUSTOM_VERTEX &v = vtx[i], &cv = *ptr;
 		ptr++;
@@ -231,6 +253,6 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 		cv.color = v.color;
 	}
 	
-	return NUM_VERTS;
+	return vtx_count;
 }
 

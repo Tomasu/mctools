@@ -308,7 +308,9 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						}
 					}
 					
-					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page);
+					//NBT_Debug("Entering toVerticies");
+					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x3F);
+					//NBT_Debug("Exiting toVerticies");
 					//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
 					dptr += num_idx;
 					total_size += num_idx;
