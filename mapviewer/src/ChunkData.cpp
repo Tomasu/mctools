@@ -162,12 +162,14 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 				{
 					int idx = dy*16*16 + dz*16 + dx;
 					
+					/*
 					int idx_down = (dy-1)*16*16 + dz*16 + dx;
 					int idx_up = (dy+1)*16*16 + dz*16 + dx;
 					int idx_north = dy*16*16 + (dz-1)*16 + dx;
 					int idx_south = dy*16*16 + (dz+1)*16 + dx;
 					int idx_west = dy*16*16 + dz*16 + (dx-1);
 					int idx_east = dy*16*16 + dz*16 + (dx+1);
+					*/
 					
 					
 					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
@@ -187,34 +189,38 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						continue;
 					}
 					
-					if(idx_up >= 0 && idx_up < 4096)
+					//if(idx_up >= 0 && idx_up < 4096)
+					if(y+dy+1 < 16*16)
 					{
 						cull_mask[y+dy+1][dz][dx] |= BlockData::FACE_DOWN;
 					}
 					
-					if(idx_down >= 0 && idx_down < 4096)
+					//if(idx_down >= 0 && idx_down < 4096)
+					if(y+dy-1 >= 0)
 					{
 						cull_mask[y+dy-1][dz][dx] |= BlockData::FACE_UP;
 					}
 					
-					if(idx_north >= 0 && idx_north < 4096)
+					if(dz - 1 >= 0)
 					{
 						cull_mask[y+dy][dz-1][dx] |= BlockData::FACE_SOUTH;
 					}
 					
-					if(idx_east >= 0 && idx_east < 4096)
+					//if(idx_east >= 0 && idx_east < 4096)
+					if(dx+1 < 16)
 					{
 						cull_mask[y+dy][dz][dx+1] |= BlockData::FACE_WEST;
 					}
 					
-					if(idx_south >= 0 && idx_south < 4096)
+					//if(idx_south >= 0 && idx_south < 4096)
+					if(dz+1 < 16)
 					{
 						cull_mask[y+dy][dz+1][dx] |= BlockData::FACE_NORTH;
 					}
 					
-					if(idx_west >= 0 && idx_west < 4096)
+					if(dx-1 >= 0)
 					{
-						cull_mask[y+dy][dz][dx-1] |= BlockData::FACE_WEST;
+						cull_mask[y+dy][dz][dx-1] |= BlockData::FACE_EAST;
 					}
 				}
 			}

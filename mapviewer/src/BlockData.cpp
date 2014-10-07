@@ -230,6 +230,8 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 		
 	CUSTOM_VERTEX vtx[vtx_count];
 	
+	//NBT_Debug("Side Count: %d , Mask: 0x%X", side_count, side_mask);
+	
 	for (int32_t u = 0,i = 0; i < 6; ++i)
 	{
 		// if a side bit is set to 0, copy the face verticies to the buffer
