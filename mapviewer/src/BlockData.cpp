@@ -230,11 +230,14 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 		
 	CUSTOM_VERTEX vtx[vtx_count];
 	
-	for (int32_t i = 0; i < 6; ++i)
+	for (int32_t u = 0,i = 0; i < 6; ++i)
 	{
 		// if a side bit is set to 0, copy the face verticies to the buffer
 		if (!(side_mask & (1 << i)))
-			std::copy(face_vtx + (6 * i), face_vtx + (6 * i) + 6, vtx + (6 * i));
+		{
+			std::copy(face_vtx + (6 * i), face_vtx + (6 * i) + 6, vtx + (6 * u));
+			++u;
+		}
 	}
 	
 #undef color

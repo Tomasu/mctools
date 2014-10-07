@@ -15,6 +15,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <cstdio>
+
 ChunkData::ChunkData(int32_t x, int32_t z) : x_(x), z_(z)
 {
 	ALLEGRO_VERTEX_ELEMENT elements[] = {
@@ -101,7 +103,6 @@ struct BLOCK_SIDES {
 
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 {
-	NBT_Debug("Entering ChunkData::Create");
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
 	CUSTOM_VERTEX *data = new CUSTOM_VERTEX[DATA_VTX_COUNT];
 	if(!data)
@@ -318,7 +319,9 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					//NBT_Debug("Entering toVerticies");
+					//uint8_t temp = cull_mask[y+dy][dz][dx];
 					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
+					//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x00);
 					//NBT_Debug("Exiting toVerticies");
 					//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
 					dptr += num_idx;
