@@ -219,11 +219,11 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 	uint8_t r = 0, g = 0, b = 0;
 	uint8_t side_count = 0;
 	
-
 //	ALLEGRO_COLOR color = al_map_rgb(0,0,0);
-	
+	if (side_mask == 0x3F)
+		return 0;
 	for (int32_t i = 0; i < 6; ++i)
-		if (side_mask & (1 << i))
+		if (!(side_mask & (1 << i)))
 			++side_count;
 	
 	uint8_t vtx_count = side_count * 6;
@@ -232,7 +232,8 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 	
 	for (int32_t i = 0; i < 6; ++i)
 	{
-		if (side_mask & (1 << i))
+		// if a side bit is set to 0, copy the face verticies to the buffer
+		if (!(side_mask & (1 << i)))
 			std::copy(face_vtx + (6 * i), face_vtx + (6 * i) + 6, vtx + (6 * i));
 	}
 	

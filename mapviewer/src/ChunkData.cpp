@@ -101,6 +101,7 @@ struct BLOCK_SIDES {
 
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 {
+	NBT_Debug("Entering ChunkData::Create");
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
 	CUSTOM_VERTEX *data = new CUSTOM_VERTEX[DATA_VTX_COUNT];
 	if(!data)
@@ -133,8 +134,11 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 	
 	CUSTOM_VERTEX *dptr = data; // reset dptr, reuse data memory.
 	
-	BLOCK_SIDES cull_sides[16*16][16][16];
-	memset(cull_sides, 0x00, sizeof(cull_sides));
+	//BLOCK_SIDES cull_sides[16*16][16][16];
+	//memset(cull_sides, 0x00, sizeof(cull_sides));
+	
+	uint8_t cull_mask[16*16][16][16];
+	memset(cull_mask, 0x00, sizeof(cull_mask));
 	
 	for(uint32_t i = 0; i < num_sections; i++)
 	{
@@ -167,46 +171,49 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
 					
+					
 					if(!BlockData::isSolid(blkid))
 					{
 						//bs.all = 0;
+						/*
 						cull_sides[y+dy][dz][dx].top = 1;
 						cull_sides[y+dy][dz][dx].bottom = 1;
 						cull_sides[y+dy][dz][dx].north = 1;
 						cull_sides[y+dy][dz][dx].east = 1;
 						cull_sides[y+dy][dz][dx].south = 1;
 						cull_sides[y+dy][dz][dx].west = 1;
+						*/
 						continue;
 					}
 					
 					if(idx_up >= 0 && idx_up < 4096)
 					{
-						cull_sides[y+dy+1][dz][dx].bottom = 1;
+						cull_mask[y+dy+1][dz][dx] |= BlockData::FACE_DOWN;
 					}
 					
 					if(idx_down >= 0 && idx_down < 4096)
 					{
-						cull_sides[y+dy-1][dz][dx].top = 1;
+						cull_mask[y+dy-1][dz][dx] |= BlockData::FACE_UP;
 					}
 					
 					if(idx_north >= 0 && idx_north < 4096)
 					{
-						cull_sides[y+dy][dz-1][dx].south = 1;
+						cull_mask[y+dy][dz-1][dx] |= BlockData::FACE_SOUTH;
 					}
 					
 					if(idx_east >= 0 && idx_east < 4096)
 					{
-						cull_sides[y+dy][dz][dx+1].west = 1;
+						cull_mask[y+dy][dz][dx+1] |= BlockData::FACE_WEST;
 					}
 					
 					if(idx_south >= 0 && idx_south < 4096)
 					{
-						cull_sides[y+dy][dz+1][dx].north = 1;
+						cull_mask[y+dy][dz+1][dx] |= BlockData::FACE_NORTH;
 					}
 					
 					if(idx_west >= 0 && idx_west < 4096)
 					{
-						cull_sides[y+dy][dz][dx-1].east = 1;
+						cull_mask[y+dy][dz][dx-1] |= BlockData::FACE_WEST;
 					}
 				}
 			}
@@ -255,11 +262,13 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 				//	NBT_Debug("sides: %x", block_sides[dy][dz][dx].all);
 					
+					/*
 					if(cull_sides[y+dy][dz][dx].top == 1 && cull_sides[y+dy][dz][dx].bottom == 1
 						&& cull_sides[y+dy][dz][dx].north == 1 && cull_sides[y+dy][dz][dx].east == 1 
 						&& cull_sides[y+dy][dz][dx].south == 1 && cull_sides[y+dy][dz][dx].west == 1 
 					)
 						continue;
+					*/
 					
 					// FIXME: create a cache of these things.
 
@@ -309,7 +318,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					//NBT_Debug("Entering toVerticies");
-					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x3F);
+					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
 					//NBT_Debug("Exiting toVerticies");
 					//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
 					dptr += num_idx;
