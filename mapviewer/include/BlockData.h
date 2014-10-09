@@ -38,7 +38,8 @@ class BlockData
 			FACE_EAST = 1 << 2,
 			FACE_NORTH = 1 << 3,
 			FACE_UP = 1 << 4,
-			FACE_DOWN = 1 << 5
+			FACE_DOWN = 1 << 5,
+			IS_TRANSLUCENT = 1 << 6
 		};
 		
 		enum {

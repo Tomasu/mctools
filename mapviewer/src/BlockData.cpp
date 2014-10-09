@@ -217,18 +217,21 @@ uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, flo
 uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask)
 {
 	uint8_t r = 0, g = 0, b = 0;
-	uint8_t side_count = 0;
+	uint32_t side_count = 0;
 	
 //	ALLEGRO_COLOR color = al_map_rgb(0,0,0);
+	if (side_mask & IS_TRANSLUCENT)
+		side_mask = 0;
 	if (side_mask == 0x3F)
 		return 0;
 	for (int32_t i = 0; i < 6; ++i)
 		if (!(side_mask & (1 << i)))
 			++side_count;
 	
-	uint8_t vtx_count = side_count * 6;
-		
-	CUSTOM_VERTEX vtx[vtx_count];
+	uint32_t vtx_count = side_count * 6;
+	
+	//CUSTOM_VERTEX vtx[vtx_count];
+	CUSTOM_VERTEX *vtx = new CUSTOM_VERTEX[vtx_count];
 	
 	//NBT_Debug("Side Count: %d , Mask: 0x%X", side_count, side_mask);
 	
@@ -258,6 +261,8 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 		cv.tx_page = tx_page;
 		cv.color = v.color;
 	}
+	
+	delete[] vtx;
 	
 	return vtx_count;
 }

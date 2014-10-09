@@ -175,7 +175,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
 					
 					
-					if(!BlockData::isSolid(blkid))
+					if(!BlockData::isSolidForCull(blkid))
 					{
 						//bs.all = 0;
 						/*
@@ -186,6 +186,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						cull_sides[y+dy][dz][dx].south = 1;
 						cull_sides[y+dy][dz][dx].west = 1;
 						*/
+						cull_mask[y+dy][dz][dx] |= BlockData::IS_TRANSLUCENT;
 						continue;
 					}
 					
