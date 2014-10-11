@@ -86,7 +86,8 @@ void ChunkData::draw(ALLEGRO_TRANSFORM *trans)
 		al_translate_transform_3d(&local_transform, 0.0, -slice.y, 0.0);
 		al_use_transform(&local_transform);
 		
-		al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count-1, ALLEGRO_PRIM_TRIANGLE_LIST);
+		//al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count-1, ALLEGRO_PRIM_TRIANGLE_LIST);
+		al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count, ALLEGRO_PRIM_TRIANGLE_LIST);
 		//al_draw_vertex_buffer(vbo_, tex, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
 	}
 }
