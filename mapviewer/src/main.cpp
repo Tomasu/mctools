@@ -87,7 +87,7 @@ int main(int argc, const char **argv)
 		return -1;
 	}
 	
-	if(!renderer->init())
+	if(!renderer->init(argv[0]))
 	{
 		NBT_Debug("failed to init renderer");
 		delete renderer;

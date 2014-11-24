@@ -29,7 +29,7 @@ class Renderer
 		void setLevel(Level *);
 		Level *getLevel();
 		
-		bool init();
+		bool init(const char *argv0);
 		void uninit();
 		void run();
 		

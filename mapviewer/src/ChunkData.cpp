@@ -1,11 +1,13 @@
 #include "ChunkData.h"
 #include "BlockData.h"
-#include <Resource/Atlas.h>
-#include <Resource/Manager.h>
+#include "Resource/Atlas.h"
+#include "Resource/Manager.h"
+#include "Resource/Model.h"
 #include "Chunk.h"
 #include "Block.h"
 #include "BlockMaps.h"
 #include "CustomVertex.h"
+#include "MCModel.h"
 #include <NBT_Tag_Compound.h>
 #include <NBT_Tag_List.h>
 #include <NBT_Tag_Byte_Array.h>
@@ -279,24 +281,51 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						continue;
 					*/
 					
-					// FIXME: create a cache of these things.
 
-					std::string resName = "blocks/";
-					std::string texName = BlockTexName(block_data[idx], 0);
+					//std::string resName = "blocks/";
+					//std::string texName = BlockStateName(block_data[idx], 0);
 					
-					resName += texName;
+					//resName += texName;
 					
 					std::string modName = "block/";
-					modName += BlockTexName(block_data[idx], 0);
+					modName += BlockStateName(block_data[idx], 0);
 					
-					Resource::ID rid = resourceManager->getModel(modName);
-						
+					Resource::ID rid = resourceManager->getModel(BlockStateName(block_data[idx], 0));
+					if(rid == Resource::INVALID_ID)
+					{
+						NBT_Debug("failed to get model %s", BlockStateName(block_data[idx], 0));
+						continue;
+					}
+					
+					ResourceModel *rmod = resourceManager->getModelResource(rid);
+					MCModel *model = rmod->model();
+					if(!model)
+					{
+						//NBT_Debug("model in resource is null?");
+						resourceManager->putModel(rmod->id());
+						continue;
+					}
+					
+					auto modvariants = model->getVariants();
+					if(!modvariants.size() || !modvariants[0].model.length())
+					{
+						NBT_Debug("no variants or no model for first variant?");
+						resourceManager->putModel(rmod->id());
+						continue;
+					}
+					
+					std::string resName = modvariants[0].elements_[0].faces[0].texname;
+					
+					// FIXME: create a cache of these things.
 					BlockData *block = BlockData::Create(block_data[idx], 0);
 					if(!block)
+					{
+						NBT_Debug("failed to create block data");
+						resourceManager->putModel(rmod->id());
 						continue;
-					
+					}
 
-					if(texName.length())
+					//if(texName.length())
 					{
 						//NBT_Debug("blockName: %s", resName.c_str());
 						Resource::ID res_id = resourceManager->getBitmap(resName);

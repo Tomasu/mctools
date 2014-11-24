@@ -13,7 +13,7 @@ class Resource
 			ModelType = 2
 		};
 		
-		Resource(Type type, const std::string &path) : id_(0), refcnt_(0), type_(type), path_(path) { id_ = NextID(); }
+		Resource(Type type, const std::string &path) : id_(0), refcnt_(0), type_(type), path_(path), pinned_(false) { id_ = NextID(); }
 		virtual ~Resource() {}
 		
 		void ref() { refcnt_++; }

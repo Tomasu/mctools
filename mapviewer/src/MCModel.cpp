@@ -7,18 +7,84 @@
 #include "rapidjson/document.h"
 #include "NBT_Debug.h"
 
-MCModel::MCModel() : ambientocclusion_(false)
+MCModel::MCModel()
 { }
 
 MCModel::~MCModel()
 { }
 
-std::string MCModel::lookupTextureKey(const std::string &s)
+bool MCModel::loadVariant(const std::string &key, rapidjson::Value &v, ResourceManager *rm)
+{
+	Variant variant;
+	
+	NBT_Debug("load Variant: %s", key.c_str());
+	if(!variant.load(key, v, rm))
+		return false;
+	
+	variants_.push_back(variant);
+	
+	return true;
+}
+
+bool MCModel::loadBlockstate(const std::string &name, ResourceManager *rm)
+{
+	rapidjson::Document *doc = rm->getBlockstateJson(name);
+	if(!doc)
+		return false;
+	
+	NBT_Debug("load Blockstate: %s", name.c_str());
+	
+	if(doc->HasParseError())
+	{
+		NBT_Debug("json parse error");
+		return false;
+	}
+	
+	rapidjson::Value &variants = (*doc)["variants"];
+	if(!variants.MemberCount())
+	{
+		NBT_Debug("no variants?");
+		return false;
+	}
+	
+	for(auto it = variants.MemberBegin(); it != variants.MemberEnd(); it++)
+	{
+		const char *member_key = it->name.GetString();
+		rapidjson::Value &member_value = it->value;
+		
+		// value can be an array or object
+		
+		if(member_value.IsObject())
+		{
+			if(!loadVariant(member_key, member_value, rm))
+				continue;
+		}
+		else if(member_value.IsArray())
+		{
+			int vid = 0;
+			for(auto it = member_value.Begin(); it != member_value.End(); it++)
+			{
+				char buff[101];
+				snprintf(buff, 100, "%i", vid);
+				vid++;
+				if(!loadVariant(buff, *it, rm))
+					continue;
+			}
+		}
+		else { NBT_Debug("unknown variant type?"); }
+	}
+	
+	name_ = name;
+	
+	return true;
+}
+
+std::string MCModel::Variant::lookupTextureKey(const std::string &s)
 {
 	return texture_map_[s];
 }
 
-bool MCModel::loadElements(rapidjson::Value &v)
+bool MCModel::Variant::loadElements(rapidjson::Value &v)
 {
 	if(v.IsNull() || !v.IsArray())
 	{
@@ -38,7 +104,7 @@ bool MCModel::loadElements(rapidjson::Value &v)
 	return true;
 }
 
-bool MCModel::loadTextures(rapidjson::Value &v)
+bool MCModel::Variant::loadTextures(rapidjson::Value &v)
 {
 	if(v.IsNull() || !v.IsObject())
 		return false;
@@ -56,54 +122,59 @@ bool MCModel::loadTextures(rapidjson::Value &v)
 	return true;
 }
 
-bool MCModel::loadTags(const std::string &name, ResourceManager* rm)
+bool MCModel::Variant::loadModel(const std::string &name, ResourceManager* rm)
 {
-	rapidjson::Document *doc = rm->getJson(name);
+	rapidjson::Document *doc = rm->getModelJson(name);
 	if(!doc)
+	{
+		NBT_Debug("failed to get model json: %s", name.c_str());
 		return false;
+	}
+	
+	NBT_Debug("load Model: %s", name.c_str());
 	
 	if(doc->HasParseError())
+	{
+		NBT_Debug("json parse error?");
 		return false;
+	}
 	
-	rapidjson::Value elements, textures, parent_val;
+	const char *parent_name = nullptr;
 	
 	for(auto v = doc->MemberBegin(); v != doc->MemberEnd(); v++)
 	{
+		//NBT_Debug("member: %s:%i", v->name.GetString(), v->value.GetType());
 		if(v->name == "elements")
-			elements = v->value;
+		{
+			if(!loadElements(v->value))
+			{
+				NBT_Debug("failed to load elements :(");
+				return false;
+			}
+		}
 		else if(v->name == "textures")
-			textures = v->value;
+		{
+			if(!loadTextures(v->value))
+			{
+				NBT_Debug("failed to load textures :(");
+				return false;
+			}
+		}
 		else if(v->name == "parent")
-			parent_val = v->value;
-	}
-	
-	if(!textures.IsNull())
-	{
-		if(!loadTextures(textures))
 		{
-			NBT_Debug("failed to load textures :(");
-			return false;
+			//NBT_Debug("parent: %s", v->value.GetString());
+			parent_name = v->value.GetString();
 		}
 	}
-	
-	// elements reference textures
-	if(!elements.IsNull())
-	{
-		if(!loadElements(elements))
-		{
-			NBT_Debug("failed to load elements :(");
-			return false;
-		}
-	}
-	
-	
+
 	// odly, we need to handle parent after the main content.
 	//  references are made from parent resources to textures defined in child resources.
-	if(!parent_val.IsNull())
+	if(parent_name)
 	{
-		if(!loadTags(parent_val.GetString(), rm))
+		//NBT_Debug("load parent %s", parent_name);
+		if(!loadModel(parent_name, rm))
 		{
-			NBT_Debug("failed to load parent %s", parent_val.GetString());
+			NBT_Debug("failed to load parent %s", parent_name);
 			return false;
 		}
 		
@@ -116,7 +187,7 @@ MCModel *MCModel::Create(const std::string &name, ResourceManager *rm)
 {
 	MCModel *model = new MCModel;
 	
-	if(!model->loadTags(name, rm))
+	if(!model->loadBlockstate(name, rm))
 	{
 		delete model;
 		return nullptr;
@@ -127,23 +198,9 @@ MCModel *MCModel::Create(const std::string &name, ResourceManager *rm)
 
 void MCModel::dump()
 {
-	NBT_Debug("textures:");
-	for(auto it: texture_map_)
+	NBT_Debug("dump model: %s", name_.c_str());
+	for(auto it = variants_.begin(); it != variants_.end(); it++)
 	{
-		NBT_Debug("%s => %s", it.first.c_str(), it.second.c_str());
-	}
-	
-	NBT_Debug("elements:");
-	for(auto &element: elements_)
-	{
-		NBT_Debug("from: [%f,%f,%f] to: [%f,%f,%f]", element.from.f1, element.from.f2, element.from.f3, element.to.f1, element.to.f2, element.to.f3);
-		
-		for(int i = 0; i < Face::MAX_FACES; i++)
-		{
-			Face &face = element.faces[i];
-			
-			NBT_Debug("face[%i]: uv:[%f,%f,%f,%f] texture:[%s] cull:[%i] tintindex:[%i]",
-						 i, face.uv.f1, face.uv.f2, face.uv.f3, face.uv.f4, face.texname.c_str(), face.cull, face.tintindex);
-		}
+		it->dump();
 	}
 }

@@ -61,6 +61,8 @@ class MCModel
 			}
 		};
 		
+		struct Variant;
+		
 		struct Face {
 			const static uint32_t MAX_FACES = 6;
 			enum CullFace {
@@ -87,7 +89,7 @@ class MCModel
 			CullFace cull;
 			uint32_t tintindex;
 			
-			bool load(MCModel *model, rapidjson::Value &v)
+			bool load(Variant *variant, rapidjson::Value &v)
 			{
 				if(v.IsNull() || !v.IsObject())
 					return false;
@@ -111,9 +113,9 @@ class MCModel
 					else if(it->name == "texture")
 					{
 						const char *tex_key = it->value.GetString();
-						const char *tex_name = tex_key[0] != '#' ? tex_key : model->lookupTextureKey(&(tex_key[1])).c_str();
+						const char *tex_name = tex_key[0] != '#' ? tex_key : variant->lookupTextureKey(&(tex_key[1])).c_str();
 						
-						NBT_Debug("face tex: %s -> %s", tex_key, tex_name);
+						//NBT_Debug("face tex: %s -> %s", tex_key, tex_name);
 						texname = std::string(tex_name);
 					}
 					else if(it->name == "cullface")
@@ -207,7 +209,7 @@ class MCModel
 			bool shade;
 			Face faces[Face::MAX_FACES];
 			
-			bool loadFaces(MCModel *model, rapidjson::Value &v)
+			bool loadFaces(Variant *variant, rapidjson::Value &v)
 			{
 				if(v.IsNull() || !v.IsObject())
 				{
@@ -219,32 +221,32 @@ class MCModel
 				{
 					if(it->name == "up")
 					{
-						if(!faces[Face::FACE_UP].load(model, it->value))
+						if(!faces[Face::FACE_UP].load(variant, it->value))
 							return false;
 					}
 					else if(it->name == "down")
 					{
-						if(!faces[Face::FACE_DOWN].load(model, it->value))
+						if(!faces[Face::FACE_DOWN].load(variant, it->value))
 							return false;
 					}
 					else if(it->name == "north")
 					{
-						if(!faces[Face::FACE_NORTH].load(model, it->value))
+						if(!faces[Face::FACE_NORTH].load(variant, it->value))
 							return false;
 					}
 					else if(it->name == "east")
 					{
-						if(!faces[Face::FACE_EAST].load(model, it->value))
+						if(!faces[Face::FACE_EAST].load(variant, it->value))
 							return false;
 					}
 					else if(it->name == "south")
 					{
-						if(!faces[Face::FACE_SOUTH].load(model, it->value))
+						if(!faces[Face::FACE_SOUTH].load(variant, it->value))
 							return false;
 					}
 					else if(it->name == "west")
 					{
-						if(!faces[Face::FACE_WEST].load(model, it->value))
+						if(!faces[Face::FACE_WEST].load(variant, it->value))
 							return false;
 					}
 				}
@@ -252,7 +254,7 @@ class MCModel
 				return true;
 			}
 			
-			bool load(MCModel *model, rapidjson::Value &v)
+			bool load(Variant *variant, rapidjson::Value &v)
 			{
 				if(v.IsNull() || !v.IsObject())
 				{
@@ -283,7 +285,7 @@ class MCModel
 					}
 					else if(it->name == "faces")
 					{
-						if(!loadFaces(model, it->value))
+						if(!loadFaces(variant, it->value))
 						{
 							NBT_Debug("failed to load faces");
 							return false;
@@ -295,23 +297,103 @@ class MCModel
 			}
 		};
 		
+		struct Variant
+		{
+			std::string key;
+			std::string model;
+			int x, y;
+			bool uvlock;
+			bool ambientocclusion;
+			
+			std::map<std::string, std::string> texture_map_;
+			std::vector<Element> elements_;
+			
+			bool load(const std::string &k, rapidjson::Value &v, ResourceManager *rm)
+			{
+				if(v.IsNull() || !v.IsObject())
+				{
+					NBT_Debug("Variant is not valid?");
+					return false;
+				}
+				
+				for(auto it = v.MemberBegin(); it != v.MemberEnd(); it++)
+				{
+					if(it->name == "model")
+						model = it->value.GetString();
+					else if(it->name == "x")
+						x = it->value.GetInt();
+					else if(it->name == "y")
+						y = it->value.GetInt();
+					else if(it->name == "uvlock")
+						uvlock = it->value.GetBool();
+				}
+				
+				if(!model.length())
+				{
+					NBT_Debug("variant is missing name property");
+					return false;
+				}
+				
+				model = "block/" + model;
+				
+				if(!loadModel(model, rm))
+				{
+					NBT_Debug("failed to load variant model?");
+					return false;
+				}
+				
+				key = k;
+				
+				return true;
+			}
+			
+			bool loadModel(const std::string &name, ResourceManager *rm);
+			bool loadElements(rapidjson::Value &v);
+			bool loadTextures(rapidjson::Value &v);
+			
+			std::string lookupTextureKey(const std::string &s);
+			
+			void dump()
+			{
+				NBT_Debug("variant: %s::%s", model.c_str(), key.c_str());
+				NBT_Debug("textures:");
+				for(auto it: texture_map_)
+				{
+					NBT_Debug("%s => %s", it.first.c_str(), it.second.c_str());
+				}
+				
+				NBT_Debug("elements:");
+				for(auto &element: elements_)
+				{
+					NBT_Debug("from: [%f,%f,%f] to: [%f,%f,%f]", element.from.f1, element.from.f2, element.from.f3, element.to.f1, element.to.f2, element.to.f3);
+					
+					for(uint32_t i = 0; i < Face::MAX_FACES; i++)
+					{
+						Face &face = element.faces[i];
+						
+						NBT_Debug("face[%i]: uv:[%f,%f,%f,%f] texture:[%s] cull:[%i] tintindex:[%i]",
+									i, face.uv.f1, face.uv.f2, face.uv.f3, face.uv.f4, face.texname.c_str(), face.cull, face.tintindex);
+					}
+				}
+			}
+		};
+		
 		MCModel();
 		~MCModel();
 		
 		static MCModel *Create(const std::string &name, ResourceManager *rm);
 
+		const std::vector<Variant> &getVariants() { return variants_; }
+		
 		void dump();
 		
 	private:
-		bool ambientocclusion_;
-		std::map<std::string, std::string> texture_map_;
-		std::vector<Element> elements_;
+		std::string name_;
+		std::vector<Variant> variants_;
 		
-		bool loadTags(const std::string &name, ResourceManager *rm);
-		bool loadElements(rapidjson::Value &v);
-		bool loadTextures(rapidjson::Value &v);
+		bool loadBlockstate(const std::string &name, ResourceManager *rm);
+		bool loadVariant(const std::string &key, rapidjson::Value &v, ResourceManager *rm);
 		
-		std::string lookupTextureKey(const std::string &s);
 };
 
 #endif /* MCMODEL_H_GUARD */

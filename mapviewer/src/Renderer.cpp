@@ -82,9 +82,12 @@ Level *Renderer::getLevel()
 	return level_;
 }
 
-bool Renderer::init()
+bool Renderer::init(const char *argv0)
 {
 	NBT_Debug("begin");
+	
+	al_set_org_name("mctools");
+	al_set_app_name("viewer");
 	
 	if(!al_init())
 	{
@@ -162,6 +165,11 @@ bool Renderer::init()
 	
 	NBT_Debug("create resource manager");
 	resManager_ = new ResourceManager(this);
+	if(!resManager_->init(argv0))
+	{
+		NBT_Debug("failed to init resource manager");
+		goto init_failed;
+	}
 	
 	fnt = al_create_builtin_font();
 	if(!fnt)

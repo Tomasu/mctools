@@ -9,7 +9,7 @@ class MCModel;
 class ResourceModel : public Resource
 {
 	public:
-		ResourceModel(const std::string &path, MCModel *model = nullptr) : Resource(Resource::ModelType, path), model_(model) { NBT_Debug("new model[%i]: %s", id(), path.c_str()); }
+		ResourceModel(const std::string &path, MCModel *model = nullptr) : Resource(Resource::ModelType, path), model_(model) { NBT_Debug("new model[%i](%p): %s", id(), model_, path.c_str()); }
 		virtual ~ResourceModel();
 		
 		MCModel *model() { return model_; }
