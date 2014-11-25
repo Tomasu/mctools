@@ -16,6 +16,11 @@ class BlockData
 		static bool isTranslucent(uint32_t blockid);
 		static bool isSolidForCull(uint32_t blockid);
 		
+		static uint8_t SID(const uint8_t *data, uint32_t idx)
+		{
+			return Nibble4(data, idx);
+		}
+		
 		static uint32_t ID(const uint8_t *data, const uint8_t *add, uint32_t idx)
 		{
 			uint32_t blkid_a = data[idx];

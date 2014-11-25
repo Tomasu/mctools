@@ -237,12 +237,14 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		
 		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
 		NBT_Tag_Byte_Array *add = section->getByteArray("Add");
+		NBT_Tag_Byte_Array *sdata = section->getByteArray("Data");
 		
 		int32_t section_y = section->getByte("Y");
 		int32_t y = section_y * 16;
 		
 		uint8_t *block_data = blocks->data();
 		uint8_t *add_data = add ? add->data() : nullptr;
+		uint8_t *sub_data = sdata ? sdata->data() : nullptr;
 		
 #ifdef VIEWER_USE_MORE_VBOS
 		dptr = data;
@@ -267,6 +269,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					float tx_xfact = 0.0, tx_yfact = 0.0, tx_page = 0.0, tx_x = 0.0, tx_y = 0.0;
 					
 					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
+					uint8_t sid = BlockData::SID(sub_data, idx);
 					
 					//if(!BlockData::isSolidForCull(blkid))
 					//	continue;
@@ -283,17 +286,23 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 
 					//std::string resName = "blocks/";
-					//std::string texName = BlockStateName(block_data[idx], 0);
+					//std::string texName = BlockStateName(blkid, sid);
 					
 					//resName += texName;
 					
-					std::string modName = "block/";
-					modName += BlockStateName(block_data[idx], 0);
+					//std::string modName = "block/";
+					//modName += BlockStateName(blkid, sid);
 					
-					Resource::ID rid = resourceManager->getModel(BlockStateName(block_data[idx], 0));
+					const char *blockStateName = BlockStateName(blkid, sid);
+					if(!blockStateName)
+					{
+						NBT_Debug("did not find blockstatename for %i:%i", blkid, sid);
+						blockStateName = "unknown";
+					}
+					Resource::ID rid = resourceManager->getModel(blockStateName);
 					if(rid == Resource::INVALID_ID)
 					{
-						NBT_Debug("failed to get model %s", BlockStateName(block_data[idx], 0));
+						NBT_Debug("failed to get model %s", blockStateName);
 						continue;
 					}
 					
