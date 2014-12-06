@@ -323,18 +323,21 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						continue;
 					}
 					
-					std::string resName = modvariants[0].elements_[0].faces[0].texname;
+					// TODO: figure out which element we need based on block type, and data
+					auto element = modvariants[0].elements_[0];
+					
+					std::string resName = element.faces[0].texname;
 					
 					// FIXME: create a cache of these things.
-					BlockData *block = BlockData::Create(block_data[idx], 0);
-					if(!block)
-					{
-						NBT_Debug("failed to create block data");
-						resourceManager->putModel(rmod->id());
-						continue;
-					}
+					//BlockData *block = BlockData::Create(block_data[idx], 0);
+					//if(!block)
+					//{
+					//	NBT_Debug("failed to create block data");
+					//	resourceManager->putModel(rmod->id());
+					//	continue;
+					//}
 
-					//if(texName.length())
+					if(resName.length())
 					{
 						//NBT_Debug("blockName: %s", resName.c_str());
 						Resource::ID res_id = resourceManager->getBitmap(resName);
@@ -366,14 +369,28 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 					//NBT_Debug("Entering toVerticies");
 					//uint8_t temp = cull_mask[y+dy][dz][dx];
-					uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
+					//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
 					//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x00);
 					//NBT_Debug("Exiting toVerticies");
 					//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
-					dptr += num_idx;
-					total_size += num_idx;
 					
-					delete block;
+					for(int i = 0; i < element.vertex_count; i++)
+					{
+						CUSTOM_VERTEX &v = element.vertices[i], &cv = *dptr;
+						float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
+						
+						cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
+						cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
+						// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
+						//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
+						cv.tx_page = tx_page;
+						cv.color = v.color;
+					}
+					
+					dptr += element.vertex_count;
+					total_size += element.vertex_count;
+					
+					//delete block;
 					
 				}
 			}

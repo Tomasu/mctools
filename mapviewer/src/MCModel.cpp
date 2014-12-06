@@ -7,6 +7,24 @@
 #include "rapidjson/document.h"
 #include "NBT_Debug.h"
 
+// assuming [ x, z, y ]
+
+// element from hopper:
+// "from": [ 0, 11, 0 ],
+// "to": [ 2, 16, 16 ],
+
+// or from cube:
+// "from": [ 0, 0, 0 ],
+// "to": [ 16, 16, 16 ],
+				
+// how to turn the above into verticies...
+/* first need to get the individual faces...
+ * 
+ * [ from.x, from.z, from.y ], [ from.x, from.z, to.y ], 
+ * 
+ * 
+ */
+
 MCModel::MCModel()
 { }
 

@@ -5,6 +5,7 @@
 #include "CustomVertex.h"
 #include <algorithm>
 
+/*
 namespace
 {
 	#define color al_map_rgb(0,0,0)
@@ -67,6 +68,7 @@ namespace
 	};
 	#undef color
 }
+*/
 
 BlockData::BlockData()
 {
@@ -216,6 +218,7 @@ uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, flo
 
 uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask)
 {
+	/*
 	uint8_t r = 0, g = 0, b = 0;
 	uint32_t side_count = 0;
 	
@@ -265,5 +268,8 @@ uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff
 	delete[] vtx;
 	
 	return vtx_count;
+	*/
+	NBT_Debug("DEPRECATED!");
+	return 0;
 }
 
