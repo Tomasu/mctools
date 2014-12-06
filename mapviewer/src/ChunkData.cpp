@@ -324,81 +324,83 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					// TODO: figure out which element we need based on block type, and data
-					auto element = modvariants[0].elements_[0];
-					
-					std::string resName;
-					
-					for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
+					for(auto element: modvariants[0].elements_)
 					{
-						auto face = element.faces[i];
-						
-						if(face.direction == MCModel::Face::FACE_NONE)
-							continue;
-						
-						resName = face.texname;
-						break;
-					}
 					
-					// FIXME: create a cache of these things.
-					//BlockData *block = BlockData::Create(block_data[idx], 0);
-					//if(!block)
-					//{
-					//	NBT_Debug("failed to create block data");
-					//	resourceManager->putModel(rmod->id());
-					//	continue;
-					//}
-
-					//if(resName.length())
-					{
-						Resource::ID res_id = resourceManager->getBitmap(resName);
-						if(res_id != Resource::INVALID_ID)
+						std::string resName;
+						
+						for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
 						{
-							//NBT_Debug("got a resource: %i", res_id);
+							auto face = element.faces[i];
 							
-							resourceManager->pinResource(res_id); // keep it around, we're gonna need it.
-		
-							Atlas::Item item;
-							if(resourceManager->getAtlasItem(res_id, &item))
+							if(face.direction == MCModel::Face::FACE_NONE)
+								continue;
+							
+							resName = face.texname;
+							break;
+						}
+						
+						// FIXME: create a cache of these things.
+						//BlockData *block = BlockData::Create(block_data[idx], 0);
+						//if(!block)
+						//{
+						//	NBT_Debug("failed to create block data");
+						//	resourceManager->putModel(rmod->id());
+						//	continue;
+						//}
+
+						//if(resName.length())
+						{
+							Resource::ID res_id = resourceManager->getBitmap(resName);
+							if(res_id != Resource::INVALID_ID)
 							{
-								Atlas *atlas = resourceManager->getAtlas();
+								//NBT_Debug("got a resource: %i", res_id);
 								
-								tx_page = item.sheet + 1;
-								//NBT_Debug("tx_page: %f", tx_page);
-								tx_xfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
-								tx_yfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
-								tx_x = item.x * tx_xfact;
-								tx_y = item.y * tx_yfact;
-							//	NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
+								resourceManager->pinResource(res_id); // keep it around, we're gonna need it.
+			
+								Atlas::Item item;
+								if(resourceManager->getAtlasItem(res_id, &item))
+								{
+									Atlas *atlas = resourceManager->getAtlas();
+									
+									tx_page = item.sheet + 1;
+									//NBT_Debug("tx_page: %f", tx_page);
+									tx_xfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
+									tx_yfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
+									tx_x = item.x * tx_xfact;
+									tx_y = item.y * tx_yfact;
+								//	NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
+								}
+							}
+							else
+							{
+								NBT_Debug("failed to load resource :( %s", resName.c_str());
 							}
 						}
-						else
-						{
-							NBT_Debug("failed to load resource :( %s", resName.c_str());
-						}
-					}
-					
-					//NBT_Debug("Entering toVerticies");
-					//uint8_t temp = cull_mask[y+dy][dz][dx];
-					//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
-					//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x00);
-					//NBT_Debug("Exiting toVerticies");
-					//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
-					
-					for(int i = 0; i < element.vertex_count; i++)
-					{
-						CUSTOM_VERTEX &v = element.vertices[i], &cv = dptr[i];
-						float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
 						
-						cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
-						cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
-						// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
-						//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
-						cv.tx_page = tx_page;
-						cv.color = v.color;
+						//NBT_Debug("Entering toVerticies");
+						//uint8_t temp = cull_mask[y+dy][dz][dx];
+						//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
+						//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x00);
+						//NBT_Debug("Exiting toVerticies");
+						//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
+						
+						for(int i = 0; i < element.vertex_count; i++)
+						{
+							CUSTOM_VERTEX &v = element.vertices[i], &cv = dptr[i];
+							float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
+							
+							cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
+							cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
+							// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
+							//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
+							cv.tx_page = tx_page;
+							cv.color = v.color;
+						}
+						
+						dptr += element.vertex_count;
+						total_size += element.vertex_count;
 					}
-					
-					dptr += element.vertex_count;
-					total_size += element.vertex_count;
 					
 					//delete block;
 					
