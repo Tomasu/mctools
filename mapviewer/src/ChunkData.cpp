@@ -326,7 +326,18 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					// TODO: figure out which element we need based on block type, and data
 					auto element = modvariants[0].elements_[0];
 					
-					std::string resName = element.faces[0].texname;
+					std::string resName;
+					
+					for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
+					{
+						auto face = element.faces[i];
+						
+						if(face.direction == MCModel::Face::FACE_NONE)
+							continue;
+						
+						resName = face.texname;
+						break;
+					}
 					
 					// FIXME: create a cache of these things.
 					//BlockData *block = BlockData::Create(block_data[idx], 0);
@@ -337,9 +348,8 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					//	continue;
 					//}
 
-					if(resName.length())
+					//if(resName.length())
 					{
-						//NBT_Debug("blockName: %s", resName.c_str());
 						Resource::ID res_id = resourceManager->getBitmap(resName);
 						if(res_id != Resource::INVALID_ID)
 						{
@@ -363,7 +373,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						}
 						else
 						{
-							//NBT_Debug("failed to load resource :( %s", resName.c_str());
+							NBT_Debug("failed to load resource :( %s", resName.c_str());
 						}
 					}
 					
@@ -376,7 +386,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					
 					for(int i = 0; i < element.vertex_count; i++)
 					{
-						CUSTOM_VERTEX &v = element.vertices[i], &cv = *dptr;
+						CUSTOM_VERTEX &v = element.vertices[i], &cv = dptr[i];
 						float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
 						
 						cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
