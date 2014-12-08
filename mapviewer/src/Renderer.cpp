@@ -74,6 +74,8 @@ void Renderer::setLevel(Level *level)
 	
 	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", dim0_->spawnX(), dim0_->spawnZ(), dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4, (dim0_->spawnX()>>4) >> 5, (dim0_->spawnZ()>>4) >> 5);
 	
+	camera_pos_ = Vector3D(dim0_->spawnX() >> 4, 84, dim0_->spawnZ() >> 4);
+	
 	autoLoadChunks(dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4);
 }
 
@@ -132,7 +134,7 @@ bool Renderer::init(const char *argv0)
    //al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
 	
-	dpy = al_create_display(1024, 768);
+	dpy = al_create_display(800, 600);
 	
 	if(!dpy)
 	{
@@ -211,6 +213,7 @@ bool Renderer::init(const char *argv0)
 	dpy_ = dpy;
 	bmp_ = bmp;
 	fnt_ = fnt;
+	grab_mouse_ = false;
 	
 	// initial clear display
 	// make things look purdy
@@ -246,11 +249,11 @@ void Renderer::run()
 	
 	al_identity_transform(&camera_transform_);
 	
-	float x = 0.0, z = 0.0;
-	x = -dim0_->spawnX();
-	z = -dim0_->spawnZ();
+	float x = -camera_pos_.getX(), y = -camera_pos_.getY(), z = -camera_pos_.getZ();
+	//x = -dim0_->spawnX();
+	//z = -dim0_->spawnZ();
 	
-	al_translate_transform_3d(&camera_transform_, x, -84, z);
+	al_translate_transform_3d(&camera_transform_, x, y, z);
 	
 	al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, DEG_TO_RAD(180));
 
@@ -293,7 +296,7 @@ void Renderer::run()
 			float rotate_diff = 0.04;
 			bool changeTranslation = false;
 			bool changeRotation = false;
-			
+				
 			if(key_state_[ALLEGRO_KEY_W])
 			{
 				z += translate_diff;
@@ -344,6 +347,7 @@ void Renderer::run()
 			
 			if(changeTranslation)
 			{
+				//camera_pos_.translate(x, y, z);
 				al_translate_transform_3d(&camera_transform_, x, y, z);
 			}
 			
@@ -352,21 +356,6 @@ void Renderer::run()
 				al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
 			}
 			
-			if(changeTranslation)
-			{
-				NBT_Debug("pos: %fx%f", -camera_transform_.m[3][0], camera_transform_.m[3][2]);
-				//autoLoadChunks((-camera_transform_.m[3][0]) / 16.0, (-camera_transform_.m[3][2]) / 16.0);
-			}
-			
-			if(!loadChunkQueue.empty())
-			{
-				NBT_Debug("%i chunks to load", loadChunkQueue.size());
-				
-				std::pair<int32_t, int32_t> pos = loadChunkQueue.front();
-				loadChunkQueue.pop();
-				
-				processChunk(pos.first, pos.second);
-			}
 			
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
@@ -380,8 +369,13 @@ void Renderer::run()
 			//NBT_Debug("pos: %fx%f", -camera_transform_.m[2][0], -camera_transform_.m[2][2]);
 			key_state_[ev.keyboard.keycode] = true;
 			
-			if (ev.keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
+			if (ev.keyboard.keycode == ALLEGRO_KEY_Q)
+			{
 				break;
+			}
+			else if (ev.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
+			{
+				grab_mouse_ = !grab_mouse_;
 			}
 		}
 		else if(ev.type == ALLEGRO_EVENT_KEY_UP)
@@ -389,7 +383,11 @@ void Renderer::run()
 			//NBT_Debug("pos: %fx%f", -camera_transform_.m[2][0], -camera_transform_.m[2][2]);
 			key_state_[ev.keyboard.keycode] = false;
 		}
-		else if(ev.type == ALLEGRO_EVENT_MOUSE_AXES)
+		else if(ev.type == ALLEGRO_EVENT_MOUSE_BUTTON_UP)
+		{
+				grab_mouse_ = true;
+		}
+		else if(ev.type == ALLEGRO_EVENT_MOUSE_AXES && grab_mouse_)
 		{
 			float dx = ev.mouse.dx, dy = ev.mouse.dy;
 			
@@ -412,11 +410,30 @@ void Renderer::run()
 //			al_rotate_transform_3d(&camera_transform_, 1.0, 0.0, 0.0, rx);
 			
 			//cam_.rx += dy / al_get_display_height(dpy_);
+			
 			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2.0, al_get_display_height(dpy_)/2.0);
 		}
  
       if(redraw && al_is_event_queue_empty(queue_))
 		{
+			if(!loadChunkQueue.empty())
+			{
+				NBT_Debug("%i chunks to load", loadChunkQueue.size());
+				
+				std::pair<int32_t, int32_t> pos = loadChunkQueue.front();
+				loadChunkQueue.pop();
+				
+				processChunk(pos.first, pos.second);
+			}
+			else
+			{
+				//if(changeTranslation)
+				{
+					//NBT_Debug("pos: %fx%fx%f", camera_pos_.getX(), camera_pos_.getZ(), camera_pos_.getY());
+					autoLoadChunks(camera_pos_.getX() / 16.0, camera_pos_.getZ() / 16.0);
+				}
+			}
+			
 			ALLEGRO_STATE state;
 			al_store_state(&state, ALLEGRO_STATE_ALL);
 			al_set_projection_transform(dpy_, &al_proj_transform_);
@@ -474,6 +491,21 @@ void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
    al_set_projection_transform(dpy_, m);
 }
 
+void Renderer::negateTransform(ALLEGRO_TRANSFORM *m)
+{
+	m->m[0][0] = -m->m[0][0];
+	m->m[0][1] = -m->m[0][1];
+	m->m[0][2] = -m->m[0][2];
+	
+	m->m[1][0] = -m->m[1][0];
+	m->m[1][1] = -m->m[1][1];
+	m->m[1][2] = -m->m[1][2];
+	
+	m->m[2][0] = -m->m[1][0];
+	m->m[2][1] = -m->m[1][1];
+	m->m[2][2] = -m->m[1][2];
+}
+
 void Renderer::draw()
 {
 	int dw = al_get_display_width(dpy_);
@@ -490,6 +522,10 @@ void Renderer::draw()
 	
 	
 	al_use_transform(&trans);
+	
+	getWorldPos(camera_pos_);
+	
+	al_copy_transform(&cur3d_transform_, al_get_current_transform());
 	
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one
@@ -559,7 +595,50 @@ void Renderer::drawHud()
 	
 	float x = 0.0, y = 0.0;
 	al_transform_coordinates(&camera_transform_, &x, &y);
-	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f y:%.0f z:%.0f", x, y/*, camera_transform_.m[3][0], camera_transform_.m[3][1]*/, camera_transform_.m[3][2]);
+	
+	Vector3D world_pos;
+	
+	
+	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos_.x, camera_pos_.y, camera_pos_.z);
+	
+//	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
+	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "Mat: x0:%.0f x1:%.0f x2:%.0f x3:%.0f z0:%.0f z1:%.0f z2:%.0f z3:%.0f", 
+	//				  world.m[0][0], world.m[1][0], world.m[2][0], world.m[3][0], 
+	//				  world.m[2][2], world.m[2][2], world.m[2][2], world.m[3][2]);
+	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f y:%.0f z:%.0f", camera_pos_.getX(), camera_pos_.getY(), camera_pos_.getZ());
+}
+
+void Renderer::getWorldPos(Vector3D &pos)
+{
+	float vec[3] = { camera_transform_.m[3][0], camera_transform_.m[3][1], camera_transform_.m[3][2] };
+	
+	ALLEGRO_TRANSFORM neg;
+	al_copy_transform(&neg, &camera_transform_);
+	//transposeTransform(&neg);
+	//negateTransform(&neg);
+	
+	pos.x = -(neg.m[0][0] * vec[0] + neg.m[0][1] * vec[1] + neg.m[0][2] * vec[2]);
+	pos.y = -(neg.m[1][0] * vec[0] + neg.m[1][1] * vec[1] + neg.m[1][2] * vec[2]);
+	pos.z = -(neg.m[2][0] * vec[0] + neg.m[2][1] * vec[1] + neg.m[2][2] * vec[2]);
+
+}
+
+void Renderer::transposeTransform(ALLEGRO_TRANSFORM *t)
+{
+	ALLEGRO_TRANSFORM copy;
+	al_copy_transform(&copy, t);
+	
+	t->m[0][0] = copy.m[0][0];
+	t->m[0][1] = copy.m[1][0];
+	t->m[0][2] = copy.m[2][0];
+	
+	t->m[1][0] = copy.m[0][1];
+	t->m[1][1] = copy.m[1][1];
+	t->m[1][2] = copy.m[2][1];
+	
+	t->m[2][0] = copy.m[0][2];
+	t->m[2][1] = copy.m[1][2];
+	t->m[2][2] = copy.m[2][2];
 }
 
 bool Renderer::chunkDataExists(int32_t x, int32_t z)
@@ -572,7 +651,10 @@ void Renderer::processChunk(int x, int z)
 	NBT_Debug("chunk %ix%i", x, z);
 
 	if(chunkDataExists(x,z))
+	{
 		NBT_Debug("chunk exists?");
+		return;
+	}
 	
 	Chunk *chunk = dim0_->getChunk(x, z);
 	if(!chunk)
@@ -594,9 +676,9 @@ void Renderer::processChunk(int x, int z)
 void Renderer::autoLoadChunks(int x, int y)
 {
 	// get the actual platform\almsvc.hdirection we are facing in the x and z axis[s]
-	Vector3D dirVec { camera_transform_.m[2][0], camera_transform_.m[2][2], 0.0 };
-	dirVec.normalize();
-	NBT_Debug("dir: %f,%f", dirVec.x, dirVec.y);
+	//Vector3D dirVec { camera_transform_.m[2][0], camera_transform_.m[2][2], 0.0 };
+	//dirVec.normalize();
+	//NBT_Debug("dir: %f,%f", dirVec.x, dirVec.y);
 	
 	Vector3D originVec = Vector3D{ (float)x, (float)y, 0.0};//dirVec; 
 	//originVec += Vector3D{ x, y, 0.0 };     // create vector based on given x,y and current direction
@@ -615,38 +697,38 @@ void Renderer::autoLoadChunks(int x, int y)
 		checkedMap.emplace(nextchunk, true);
 		
 		auto pos = std::pair<int32_t, int32_t>(nextchunk.x, nextchunk.y);
-		//if(chunkDataExists(pos.first, pos.second))
-		//{
+		if(!chunkDataExists(pos.first, pos.second))
+		{
 			NBT_Debug("queue %ix%i", (int)nextchunk.x, (int)nextchunk.y);
 			loadChunkQueue.push(pos);
-		//}
+		}
 		//else {
 		//	NBT_Debug("chunk %ix%i !exist", pos.first, pos.second);
 		//}
 		
 		Vector3D northVec{ nextchunk.x, nextchunk.y+1 };
-		if(!checkedMap.count(northVec) && isChunkVisible(originVec, northVec))
+		if(!checkedMap.count(northVec) && isChunkVisible(originVec, northVec) /*&& !chunkDataExists(northVec.x, northVec.y)*/)
 		{
 			checkedMap.emplace(northVec, true);
 			queue.push(northVec);
 		}
 		
 		Vector3D westVec{ nextchunk.x+1, nextchunk.y };
-		if(!checkedMap.count(westVec) && isChunkVisible(originVec, westVec))
+		if(!checkedMap.count(westVec) && isChunkVisible(originVec, westVec) /*&& !chunkDataExists(westVec.x, westVec.y)*/)
 		{
 			checkedMap.emplace(westVec, true);
 			queue.push(westVec);
 		}
 		
 		Vector3D southVec{ nextchunk.x, nextchunk.y-1 };
-		if(!checkedMap.count(southVec) && isChunkVisible(originVec, southVec))
+		if(!checkedMap.count(southVec) && isChunkVisible(originVec, southVec) /*&& !chunkDataExists(southVec.x, southVec.y)*/)
 		{
 			checkedMap.emplace(southVec, true);
 			queue.push(southVec);
 		}
 		
 		Vector3D eastVec{ nextchunk.x-1, nextchunk.y };
-		if(!checkedMap.count(eastVec) && isChunkVisible(originVec, eastVec))
+		if(!checkedMap.count(eastVec) && isChunkVisible(originVec, eastVec) /*&& !chunkDataExists(eastVec.x, eastVec.y)*/)
 		{
 			checkedMap.emplace(eastVec, true);
 			queue.push(eastVec);
@@ -660,7 +742,7 @@ bool Renderer::isChunkVisible(Vector3D origin, Vector3D pos)
 {
 	Vector3D dist = pos - origin;
 	
-	if(dist.magnitude() <= 2.0)
+	if(dist.magnitude() <= 3.0)
 		return true;
 	
 	return false;

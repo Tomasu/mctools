@@ -48,6 +48,12 @@ if(PKG_CONFIG_FOUND)
 		ALLEGRO_IMAGE_FOUND AND ALLEGRO_FONT_FOUND AND ALLEGRO_PHYSFS_FOUND)
 
 		option(VIEWER_USE_MORE_VBOS "Use more than one VBO per chunk" OFF)
+		option(VIEWER_PROFILE "Enable Profiling" OFF)
+		
+		if(VIEWER_PROFILE)
+			add_definitions(-pg)
+			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+		endif(VIEWER_PROFILE)
 		
 		message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable renderer.")
 		add_definitions(${ALLEGRO_CFLAGS})

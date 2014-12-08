@@ -30,7 +30,10 @@ bool AtlasSheet::allocItem(ALLEGRO_BITMAP *bmp, Atlas::Item *item)
 	Atlas::Item newItem;
 	
 	if(!findFree(&newItem))
+	{
+		NBT_Debug("no free slot on sheet %i", id_);
 		return false;
+	}
 	
 	ALLEGRO_STATE state;
 	al_store_state(&state, ALLEGRO_STATE_TARGET_BITMAP);

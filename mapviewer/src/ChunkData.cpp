@@ -107,7 +107,7 @@ struct BLOCK_SIDES {
 ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 {
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
-	CUSTOM_VERTEX *data = new CUSTOM_VERTEX[DATA_VTX_COUNT];
+	CUSTOM_VERTEX *data = (CUSTOM_VERTEX*)malloc(sizeof(CUSTOM_VERTEX) * DATA_VTX_COUNT);
 	if(!data)
 		return nullptr;
 		
@@ -311,27 +311,27 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					if(!model)
 					{
 						//NBT_Debug("model in resource is null?");
-						resourceManager->putModel(rmod->id());
+						//resourceManager->putModel(rmod->id());
 						continue;
 					}
 					
-					auto modvariants = model->getVariants();
+					auto &modvariants = model->getVariants();
 					if(!modvariants.size() || !modvariants[0].model.length())
 					{
 						NBT_Debug("no variants or no model for first variant?");
-						resourceManager->putModel(rmod->id());
+						//resourceManager->putModel(rmod->id());
 						continue;
 					}
 					
 					// TODO: figure out which element we need based on block type, and data
-					for(auto element: modvariants[0].elements_)
+					for(auto &element: modvariants[0].elements_)
 					{
 					
 						std::string resName;
 						
 						for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
 						{
-							auto face = element.faces[i];
+							auto &face = element.faces[i];
 							
 							if(face.direction == MCModel::Face::FACE_NONE)
 								continue;
@@ -422,7 +422,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 			NBT_Warn("failed to fill chunk data");
 #endif
 	
-	delete[] data;
+	free(data);
 	
 	return cdata;
 }

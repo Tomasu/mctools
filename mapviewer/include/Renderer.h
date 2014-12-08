@@ -9,9 +9,9 @@
 
 #include "PairHash.h"
 #include "Util.h"
+#include "Vector.h"
 
 struct ALLEGRO_FONT;
-class Vector3D;
 class ResourceManager;
 class Level;
 class Map;
@@ -55,6 +55,7 @@ class Renderer
 		uint32_t vao_;
 		
 		bool key_state_[ALLEGRO_KEY_MAX];
+		bool grab_mouse_;
 		
 		ALLEGRO_EVENT_QUEUE *queue_;
 		ALLEGRO_TIMER *tmr_;
@@ -65,10 +66,13 @@ class Renderer
 		ALLEGRO_FONT *fnt_;
 		
 		ALLEGRO_TRANSFORM al_proj_transform_;
+		ALLEGRO_TRANSFORM cur3d_transform_;
 		
 		ALLEGRO_TRANSFORM camera_transform_;
 		float rx_look;
 		float ry_look;
+		
+		Vector3D camera_pos_;
 		
 		ResourceManager *resManager_;
 		
@@ -82,6 +86,10 @@ class Renderer
 		bool loadShaders(const char *vertex_file_path, const char *fragment_file_path);
 		bool loadAllegroShaders();
 		void setupProjection(ALLEGRO_TRANSFORM *m);
+		void getWorldPos(Vector3D &pos);
+		
+		void negateTransform(ALLEGRO_TRANSFORM *m);
+		void transposeTransform(ALLEGRO_TRANSFORM *m);
 		
 		std::unordered_map<ChunkDataKey, ChunkData *> chunkData_;
 };

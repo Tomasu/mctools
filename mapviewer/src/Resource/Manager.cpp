@@ -108,7 +108,7 @@ bool ResourceManager::init(const char *argv0)
 	
 	al_set_physfs_file_interface();
 	
-	atlas_ = new Atlas(renderer_, 128, 16);
+	atlas_ = new Atlas(renderer_, 512, 16);
 	
 	NBT_Debug("end");
 	return true;

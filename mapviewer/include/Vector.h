@@ -83,6 +83,10 @@ class Vector3D
 			z += Z;
 		}
 		
+		float getX() const { return x; }
+		float getY() const { return y; }
+		float getZ() const { return z; }
+		
 	public:
 		float x, y, z;
 };
