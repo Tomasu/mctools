@@ -74,8 +74,7 @@ void Renderer::setLevel(Level *level)
 	
 	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", dim0_->spawnX(), dim0_->spawnZ(), dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4, (dim0_->spawnX()>>4) >> 5, (dim0_->spawnZ()>>4) >> 5);
 	
-	camera_pos_ = Vector3D(dim0_->spawnX() >> 4, 84, dim0_->spawnZ() >> 4);
-	
+	camera_pos_ = Vector3D(dim0_->spawnX(), 84, dim0_->spawnZ());
 	autoLoadChunks(dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4);
 }
 
@@ -249,7 +248,7 @@ void Renderer::run()
 	
 	al_identity_transform(&camera_transform_);
 	
-	float x = -camera_pos_.getX(), y = -camera_pos_.getY(), z = -camera_pos_.getZ();
+	float x = -camera_pos_.x, y = -camera_pos_.y, z = -camera_pos_.z;
 	//x = -dim0_->spawnX();
 	//z = -dim0_->spawnZ();
 	
