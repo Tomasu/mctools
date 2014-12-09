@@ -741,7 +741,7 @@ bool Renderer::isChunkVisible(Vector3D origin, Vector3D pos)
 {
 	Vector3D dist = pos - origin;
 	
-	if(dist.magnitude() <= 3.0)
+	if(dist.magnitude() <= 4.0)
 		return true;
 	
 	return false;

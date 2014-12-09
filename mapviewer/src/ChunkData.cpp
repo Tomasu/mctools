@@ -327,9 +327,9 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					for(auto &element: modvariants[0].elements_)
 					{
 					
-						std::string resName;
+						//std::string resName;
 						
-						for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
+						/*for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
 						{
 							auto &face = element.faces[i];
 							
@@ -338,7 +338,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 							
 							resName = face.texname;
 							break;
-						}
+						}*/
 						
 						// FIXME: create a cache of these things.
 						//BlockData *block = BlockData::Create(block_data[idx], 0);
@@ -350,7 +350,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						//}
 
 						//if(resName.length())
-						{
+						/*{
 							Resource::ID res_id = resourceManager->getBitmap(resName);
 							if(res_id != Resource::INVALID_ID)
 							{
@@ -376,7 +376,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 							{
 								NBT_Debug("failed to load resource :( %s", resName.c_str());
 							}
-						}
+						}*/
 						
 						//NBT_Debug("Entering toVerticies");
 						//uint8_t temp = cull_mask[y+dy][dz][dx];
@@ -387,14 +387,17 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						
 						for(int i = 0; i < element.vertex_count; i++)
 						{
+							auto &face = element.faces[i % 6];
+							
 							CUSTOM_VERTEX &v = element.vertices[i], &cv = dptr[i];
 							float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
 							
 							cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
-							cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
+							//cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
+							cv.txcoord = { v.txcoord.f1 , 1-v.txcoord.f2 };
 							// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
 							//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
-							cv.tx_page = tx_page;
+							cv.tx_page = face.tex_page;
 							cv.color = v.color;
 						}
 						

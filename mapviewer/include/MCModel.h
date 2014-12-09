@@ -94,12 +94,15 @@ class MCModel
 			FaceDirection direction;
 			Coord4f uv;
 			std::string texname;
+			Resource::ID tex_res;
+			uint32_t tex_page;
 			CullFace cull;
 			int32_t tintindex;
 			
 			Face() : direction(FACE_NONE), uv(), texname(), cull(CULL_NONE), tintindex(-1) { }
+			// TODO: putBitmap for texture?
 			
-			bool load(Variant *variant, FaceDirection dir, rapidjson::Value &v)
+			bool load(Variant *variant, FaceDirection dir, rapidjson::Value &v, ResourceManager *rm)
 			{
 				if(v.IsNull() || !v.IsObject())
 					return false;
@@ -151,6 +154,27 @@ class MCModel
 					else if(it->name == "tintindex")
 					{
 						tintindex = it->value.GetInt();
+					}
+				}
+				
+				tex_res = rm->getBitmap(texname);
+				if(tex_res != Resource::INVALID_ID)
+				{
+					Atlas::Item item;
+					if(rm->getAtlasItem(tex_res, &item))
+					{
+						Atlas *atlas = rm->getAtlas();
+						
+						float xfact = atlas->xfact();
+						float yfact = atlas->yfact();
+						
+						uv.f1 = uv.f1 * xfact + item.x * xfact;
+						uv.f2 = uv.f2 * yfact + item.y * yfact;
+						
+						uv.f3 = uv.f3 * xfact + item.x * xfact;
+						uv.f4 = uv.f4 * yfact + item.y * yfact;
+						
+						tex_page = item.sheet + 1;
 					}
 				}
 				
@@ -222,10 +246,10 @@ class MCModel
 					
 					UV_MAP(const Coord4f &uvd) : uv(uvd) { }
 					
-					VF2 p1() { return VF2(uv.f1, uv.f2); }
-					VF2 p2() { return VF2(uv.f3, uv.f2); }
-					VF2 p3() { return VF2(uv.f1, uv.f4); }
-					VF2 p4() { return VF2(uv.f3, uv.f4); }
+					VF2 p3() { return VF2(uv.f1, uv.f2); }
+					VF2 p4() { return VF2(uv.f3, uv.f2); }
+					VF2 p1() { return VF2(uv.f1, uv.f4); }
+					VF2 p2() { return VF2(uv.f3, uv.f4); }
 					
 					Coord4f uv;
 				};
@@ -242,7 +266,7 @@ class MCModel
 					VF3 from4() { return VF3(to_.f1,   to_.f2,   from_.f3); }
 					
 					VF3 to1() { return VF3(from_.f1, from_.f2, to_.f3); }
-					VF3 to2() { return VF3(to_.f1,   to_.f2,  to_.f3); }
+					VF3 to2() { return VF3(to_.f1,   from_.f2, to_.f3); }
 					VF3 to3() { return VF3(from_.f1, to_.f2,  to_.f3); }
 					VF3 to4() { return VF3(to_.f1,   to_.f2,  to_.f3); }
 					
@@ -259,7 +283,7 @@ class MCModel
 				uint32_t vidx;
 				CUSTOM_VERTEX *vertices;
 				
-				bool loadFaces(Variant *variant, rapidjson::Value &v)
+				bool loadFaces(Variant *variant, rapidjson::Value &v, ResourceManager *rm)
 				{
 					if(v.IsNull() || !v.IsObject())
 					{
@@ -272,42 +296,42 @@ class MCModel
 					{
 						if(it->name == "up")
 						{
-							if(!faces[Face::FACE_UP].load(variant, Face::FACE_UP, it->value))
+							if(!faces[Face::FACE_UP].load(variant, Face::FACE_UP, it->value, rm))
 								return false;
 							
 							face_count++;
 						}
 						else if(it->name == "down")
 						{
-							if(!faces[Face::FACE_DOWN].load(variant, Face::FACE_DOWN, it->value))
+							if(!faces[Face::FACE_DOWN].load(variant, Face::FACE_DOWN, it->value, rm))
 								return false;
 							
 							face_count++;
 						}
 						else if(it->name == "north")
 						{
-							if(!faces[Face::FACE_NORTH].load(variant, Face::FACE_NORTH, it->value))
+							if(!faces[Face::FACE_NORTH].load(variant, Face::FACE_NORTH, it->value, rm))
 								return false;
 							
 							face_count++;
 						}
 						else if(it->name == "east")
 						{
-							if(!faces[Face::FACE_EAST].load(variant, Face::FACE_EAST, it->value))
+							if(!faces[Face::FACE_EAST].load(variant, Face::FACE_EAST, it->value, rm))
 								return false;
 							
 							face_count++;
 						}
 						else if(it->name == "south")
 						{
-							if(!faces[Face::FACE_SOUTH].load(variant, Face::FACE_SOUTH, it->value))
+							if(!faces[Face::FACE_SOUTH].load(variant, Face::FACE_SOUTH, it->value, rm))
 								return false;
 							
 							face_count++;
 						}
 						else if(it->name == "west")
 						{
-							if(!faces[Face::FACE_WEST].load(variant, Face::FACE_WEST, it->value))
+							if(!faces[Face::FACE_WEST].load(variant, Face::FACE_WEST, it->value, rm))
 								return false;
 							
 							face_count++;
@@ -320,9 +344,9 @@ class MCModel
 					
 					POINT_MAP pmap_ = POINT_MAP(from, to);
 					
-					if(faces[Face::FACE_UP].direction == Face::FACE_UP)
+					if(faces[Face::FACE_DOWN].direction == Face::FACE_DOWN)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_UP].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_DOWN].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p3());
@@ -333,9 +357,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p2());
 					}
 					
-					if(faces[Face::FACE_DOWN].direction == Face::FACE_DOWN)
+					if(faces[Face::FACE_UP].direction == Face::FACE_UP)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_DOWN].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_UP].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to3(), uv.p3());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from4(), uv.p2());
@@ -351,12 +375,12 @@ class MCModel
 						UV_MAP uv = UV_MAP(faces[Face::FACE_NORTH].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p1());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p2());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to3(), uv.p4());
-						
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to4(), uv.p3());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p2());
+						
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p2());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to4(), uv.p3());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to3(), uv.p4());
 					}
 					
 					if(faces[Face::FACE_EAST].direction == Face::FACE_EAST)
@@ -380,9 +404,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from3(), uv.p3());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p2());
 						
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p1());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from4(), uv.p4());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p2());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from3(), uv.p3());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from4(), uv.p4());
 					}
 					
 					if(faces[Face::FACE_WEST].direction == Face::FACE_WEST)
@@ -403,7 +427,7 @@ class MCModel
 					return true;
 				}
 				
-				bool load(Variant *variant, rapidjson::Value &v)
+				bool load(Variant *variant, rapidjson::Value &v, ResourceManager *rm)
 				{
 					if(v.IsNull() || !v.IsObject())
 					{
@@ -434,7 +458,7 @@ class MCModel
 						}
 						else if(it->name == "faces")
 						{
-							if(!loadFaces(variant, it->value))
+							if(!loadFaces(variant, it->value, rm))
 							{
 								NBT_Debug("failed to load faces");
 								return false;
@@ -497,7 +521,7 @@ class MCModel
 			}
 			
 			bool loadModel(const std::string &name, ResourceManager *rm);
-			bool loadElements(rapidjson::Value &v);
+			bool loadElements(rapidjson::Value &v, ResourceManager *rm);
 			bool loadTextures(rapidjson::Value &v);
 			
 			std::string lookupTextureKey(const std::string &s);

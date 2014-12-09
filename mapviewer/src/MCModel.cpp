@@ -102,7 +102,7 @@ std::string MCModel::Variant::lookupTextureKey(const std::string &s)
 	return texture_map_[s];
 }
 
-bool MCModel::Variant::loadElements(rapidjson::Value &v)
+bool MCModel::Variant::loadElements(rapidjson::Value &v, ResourceManager *rm)
 {
 	if(v.IsNull() || !v.IsArray())
 	{
@@ -113,7 +113,7 @@ bool MCModel::Variant::loadElements(rapidjson::Value &v)
 	for(auto it = v.Begin(); it != v.End(); it++)
 	{
 		Element element;
-		if(!element.load(this, *it))
+		if(!element.load(this, *it, rm))
 			return false;
 		
 		elements_.emplace(elements_.end(), element);
@@ -164,7 +164,7 @@ bool MCModel::Variant::loadModel(const std::string &name, ResourceManager* rm)
 		//NBT_Debug("member: %s:%i", v->name.GetString(), v->value.GetType());
 		if(v->name == "elements")
 		{
-			if(!loadElements(v->value))
+			if(!loadElements(v->value, rm))
 			{
 				NBT_Debug("failed to load elements :(");
 				return false;

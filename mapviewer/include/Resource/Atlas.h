@@ -25,8 +25,12 @@ class Atlas
 		
 		bool getItem(Resource::ID id, Item *item);
 		
+		// TODO: eventually we may want to support non square textures...
 		uint32_t sheetSize() { return sheetSize_; }
 		uint32_t gridSize() { return gridSize_; }
+		
+		float xfact() const { return (float)gridSize_ / (float)sheetSize_; }
+		float yfact() const { return (float)gridSize_ / (float)sheetSize_; }
 		
 		uint32_t numSheets() { return sheets_.size(); }
 		AtlasSheet *getSheet(uint32_t idx) { return sheets_[idx]; }
