@@ -3,10 +3,13 @@
 
 #include <unordered_map>
 #include <map>
+#include <cmath>
 #include "Resource/Manager.h"
 #include "CustomVertex.h"
 #include "Util.h"
 #include "NBT_Debug.h"
+
+void al_transform_coordinates_3d(const ALLEGRO_TRANSFORM *trans, float *x, float *y, float *z);
 
 class ResourceManager;
 
@@ -112,6 +115,8 @@ class MCModel
 				uv.f2 = 0.0;
 				uv.f3 = 1.0;
 				uv.f4 = 1.0;
+					
+				Atlas *atlas = rm->getAtlas();
 				
 				cull = CULL_NONE;
 				
@@ -163,8 +168,6 @@ class MCModel
 					Atlas::Item item;
 					if(rm->getAtlasItem(tex_res, &item))
 					{
-						Atlas *atlas = rm->getAtlas();
-						
 						float xfact = atlas->xfact();
 						float yfact = atlas->yfact();
 						
@@ -176,6 +179,14 @@ class MCModel
 						
 						tex_page = item.sheet + 1;
 					}
+				}
+				
+				if(uv.f1 == 0.0 && uv.f2 == 0.0 && uv.f3 == 0.0 && uv.f4 == 0.0)
+				{
+					uv.f1 = 0.0;
+					uv.f2 = 0.0;
+					uv.f3 = 1.0 * atlas->xfact();
+					uv.f4 = 1.0 * atlas->yfact();
 				}
 				
 				return true;
@@ -344,18 +355,7 @@ class MCModel
 					
 					POINT_MAP pmap_ = POINT_MAP(from, to);
 					
-					if(faces[Face::FACE_DOWN].direction == Face::FACE_DOWN)
-					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_DOWN].uv);
-						
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p3());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p4());
-						
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p4());
-						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p2());
-					}
+					NBT_Debug("got %i faces, need %i vertices", face_count, vertex_count);
 					
 					if(faces[Face::FACE_UP].direction == Face::FACE_UP)
 					{
@@ -370,9 +370,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from4(), uv.p2());
 					}
 					
-					if(faces[Face::FACE_NORTH].direction == Face::FACE_NORTH)
+					if(faces[Face::FACE_SOUTH].direction == Face::FACE_SOUTH)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_NORTH].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_SOUTH].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to4(), uv.p3());
@@ -383,9 +383,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to3(), uv.p4());
 					}
 					
-					if(faces[Face::FACE_EAST].direction == Face::FACE_EAST)
+					if(faces[Face::FACE_WEST].direction == Face::FACE_WEST)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_EAST].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_WEST].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to4(), uv.p4());
@@ -396,9 +396,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to4(), uv.p4());
 					}
 					
-					if(faces[Face::FACE_SOUTH].direction == Face::FACE_SOUTH)
+					if(faces[Face::FACE_NORTH].direction == Face::FACE_NORTH)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_SOUTH].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_NORTH].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from3(), uv.p3());
@@ -409,9 +409,9 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from4(), uv.p4());
 					}
 					
-					if(faces[Face::FACE_WEST].direction == Face::FACE_WEST)
+					if(faces[Face::FACE_EAST].direction == Face::FACE_EAST)
 					{
-						UV_MAP uv = UV_MAP(faces[Face::FACE_WEST].uv);
+						UV_MAP uv = UV_MAP(faces[Face::FACE_EAST].uv);
 						
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p2());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
@@ -420,6 +420,19 @@ class MCModel
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to3(), uv.p3());
 						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from3(), uv.p4());
+					}
+					
+					if(faces[Face::FACE_DOWN].direction == Face::FACE_DOWN)
+					{
+						UV_MAP uv = UV_MAP(faces[Face::FACE_DOWN].uv);
+						
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from1(), uv.p3());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p4());
+						
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to1(), uv.p1());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.from2(), uv.p4());
+						vertices[vidx++] = CUSTOM_VERTEX(pmap_.to2(), uv.p2());
 					}
 					
 					NBT_Debug("wanted verts: %i, got %i", vertex_count, vidx);
@@ -480,6 +493,9 @@ class MCModel
 			
 			std::map<std::string, std::string> texture_map_;
 			std::vector<Element> elements_;
+			std::map<std::string, std::string> state_map_;
+			
+			
 			
 			bool load(const std::string &k, rapidjson::Value &v, ResourceManager *rm)
 			{
@@ -487,6 +503,37 @@ class MCModel
 				{
 					NBT_Debug("Variant is not valid?");
 					return false;
+				}
+				
+				x = 0.0;
+				y = 0.0;
+				key = k;
+				
+				size_t last_pos = -1, pos = 0;
+				std::string bstate_key;
+				while((pos = key.find_first_of(",=", last_pos+1)) != std::string::npos)
+				{
+					std::string part = key.substr(last_pos+1, pos - last_pos - 1 );
+					
+					if(key[pos] == '=')
+					{
+						bstate_key = part;
+					}
+					else if(key[pos] == ',')
+					{
+						state_map_.emplace(bstate_key, part);
+						NBT_Debug("bstate: %s=%s", bstate_key.c_str(), part.c_str());
+						bstate_key.erase();
+					}
+					
+					last_pos = pos;
+				}
+				
+				if(!bstate_key.empty())
+				{
+					std::string part = key.substr(last_pos+1);
+					NBT_Debug("bstate: %s=%s", bstate_key.c_str(), part.c_str());
+					state_map_.emplace(bstate_key, part);
 				}
 				
 				for(auto it = v.MemberBegin(); it != v.MemberEnd(); it++)
@@ -515,7 +562,7 @@ class MCModel
 					return false;
 				}
 				
-				key = k;
+				rotate();
 				
 				return true;
 			}
@@ -525,6 +572,42 @@ class MCModel
 			bool loadTextures(rapidjson::Value &v);
 			
 			std::string lookupTextureKey(const std::string &s);
+			
+			void rotate()
+			{
+				if(x == 0.0 && y == 0.0)
+					return;
+				
+				ALLEGRO_TRANSFORM rot;
+				al_identity_transform(&rot);
+				al_translate_transform_3d(&rot, -0.5, -0.5, -0.5);
+				
+				if(x != 0.0)
+				{
+				//	al_translate_transform_3d(&xrot, -1.0, -1.0, -1.0);
+					al_rotate_transform_3d(&rot, 1, 0, 0, x * M_PI / 180.0);
+					//al_translate_transform_3d(&xrot, -1.0, 0.0, 0.0);
+				}
+				
+				if(y != 0.0)
+				{
+					//al_translate_transform_3d(&yrot, 0.0, 1.0, 0.0);
+					al_rotate_transform_3d(&rot, 0, 1, 0, y * M_PI / 180.0);
+					//al_translate_transform_3d(&yrot, 0.0, -1.0, 0.0);
+				}
+				
+				//al_compose_transform(&xrot, &yrot);
+				al_translate_transform_3d(&rot, 0.5, 0.5, 0.5);
+				
+				for(auto &elem: elements_)
+				{
+					for(int32_t i = 0; i < elem.vertex_count; i++)
+					{
+						CUSTOM_VERTEX &v = elem.vertices[i];
+						al_transform_coordinates_3d(&rot, &(v.pos.f1), &(v.pos.f2), &(v.pos.f3));
+					}
+				}
+			}
 			
 			void dump()
 			{

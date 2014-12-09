@@ -3,6 +3,7 @@
 
 #include <allegro5/allegro.h>
 
+
 struct VF4
 {
 	float f1, f2, f3, f4;
@@ -39,10 +40,10 @@ struct CUSTOM_VERTEX
 	{
 		// color = al_map_rgb(0, 0, 0); <-- can't be called till allegro is initialized...
 		// CUSTOM_VERTEX may be used statically before allegro is initialized.
-		color.r = 0.0;
+		color.r = 1.0;
 		color.g = 0.0;
-		color.b = 0.0;
-		color.a = 0.0;
+		color.b = 1.0;
+		color.a = 1.0;
 	}
 	
 	CUSTOM_VERTEX(VF3 pos_ = VF3(), VF2 txc = VF2(), float txp = 0.0) :
