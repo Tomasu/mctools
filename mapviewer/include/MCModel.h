@@ -101,6 +101,7 @@ class MCModel
 			uint32_t tex_page;
 			CullFace cull;
 			int32_t tintindex;
+			float rotation;
 			
 			Face() : direction(FACE_NONE), uv(), texname(), cull(CULL_NONE), tintindex(-1) { }
 			// TODO: putBitmap for texture?
@@ -111,6 +112,8 @@ class MCModel
 					return false;
 				
 				direction = dir;
+				rotation = 0.0;
+				
 				uv.f1 = 0.0;
 				uv.f2 = 0.0;
 				uv.f3 = 1.0;
@@ -160,6 +163,10 @@ class MCModel
 					{
 						tintindex = it->value.GetInt();
 					}
+					else if(it->name == "rotation")
+					{
+						//rotation = -it->value.GetDouble();
+					}
 				}
 				
 				tex_res = rm->getBitmap(texname);
@@ -187,6 +194,18 @@ class MCModel
 					uv.f2 = 0.0;
 					uv.f3 = 1.0 * atlas->xfact();
 					uv.f4 = 1.0 * atlas->yfact();
+				}
+				
+				if(rotation != 0.0)
+				{
+					ALLEGRO_TRANSFORM rot;
+					al_identity_transform(&rot);
+					al_translate_transform(&rot, -0.5, -0.5);
+					al_rotate_transform(&rot, rotation * M_PI / 180.0);
+					al_translate_transform(&rot, 0.5, 0.5);
+					
+					al_transform_coordinates(&rot, &uv.f1, &uv.f2);
+					al_transform_coordinates(&rot, &uv.f3, &uv.f4);
 				}
 				
 				return true;
