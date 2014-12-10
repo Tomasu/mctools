@@ -18,8 +18,6 @@
 #include "Map.h"
 #include "Vector.h"
 
-#include "MCModel.h"
-
 #include "NBT_Debug.h"
 
 Renderer::Renderer() : level_(nullptr), queue_(nullptr), tmr_(nullptr), dpy_(nullptr)
@@ -187,7 +185,7 @@ bool Renderer::init(const char *argv0)
 	}
 	
 	//{
-	//	MCModel *test_model = MCModel::Create("block/hopper_down", resManager_);
+	//	MCModel::Model *test_model = MCModel::Model::Create("block/hopper_down", resManager_);
 	//	test_model->dump();
 	//}
 	

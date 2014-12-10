@@ -7,7 +7,9 @@
 #include "Block.h"
 #include "BlockMaps.h"
 #include "CustomVertex.h"
-#include "MCModel.h"
+#include "MCModel/Model.h"
+#include "MCModel/Variant.h"
+#include "MCModel/Element.h"
 #include <NBT_Tag_Compound.h>
 #include <NBT_Tag_List.h>
 #include <NBT_Tag_Byte_Array.h>
@@ -307,7 +309,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					ResourceModel *rmod = resourceManager->getModelResource(rid);
-					MCModel *model = rmod->model();
+					MCModel::Model *model = rmod->model();
 					if(!model)
 					{
 						//NBT_Debug("model in resource is null?");
@@ -316,7 +318,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					auto &modvariants = model->getVariants();
-					if(!modvariants.size() || !modvariants[0].model.length())
+					if(!modvariants.size())
 					{
 						NBT_Debug("no variants or no model for first variant?");
 						//resourceManager->putModel(rmod->id());
@@ -324,7 +326,7 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 					}
 					
 					// TODO: figure out which element we need based on block type, and data
-					for(auto &element: modvariants[0].elements_)
+					for(auto &element: modvariants[0]->elements_)
 					{
 					
 						//std::string resName;
@@ -385,11 +387,11 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 						//NBT_Debug("Exiting toVerticies");
 						//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
 						
-						for(int i = 0; i < element.vertex_count; i++)
+						for(int i = 0; i < element->vertex_count; i++)
 						{
-							auto &face = element.faces[i % 6];
+							auto &face = element->faces[i % 6];
 							
-							CUSTOM_VERTEX &v = element.vertices[i], &cv = dptr[i];
+							CUSTOM_VERTEX &v = element->vertices[i], &cv = dptr[i];
 							float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
 							
 							cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
@@ -401,8 +403,8 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 							cv.color = v.color;
 						}
 						
-						dptr += element.vertex_count;
-						total_size += element.vertex_count;
+						dptr += element->vertex_count;
+						total_size += element->vertex_count;
 					}
 					
 					//delete block;

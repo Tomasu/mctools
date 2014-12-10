@@ -2,9 +2,9 @@
 #include "Resource/Resource.h"
 #include "Resource/Bitmap.h"
 #include "Resource/Atlas.h"
-#include <Resource/Model.h>
-#include <Renderer.h>
-#include <MCModel.h>
+#include "Resource/Model.h"
+#include "Renderer.h"
+#include "MCModel/Model.h"
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_physfs.h>
@@ -412,7 +412,7 @@ Resource::ID ResourceManager::getModel(const std::string& name)
 	}
 	else
 	{
-		MCModel *mcmod = MCModel::Create(name, this);
+		MCModel::Model *mcmod = MCModel::Model::Create(name, this);
 		if(!mcmod)
 		{
 			NBT_Debug("failed to load model %s %s", name.c_str(), fpath.c_str());
