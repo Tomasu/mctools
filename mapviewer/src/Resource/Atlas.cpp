@@ -21,6 +21,26 @@ Atlas::~Atlas()
 	}
 }
 
+ResourceBitmap *Atlas::copy(const std::string &name, ALLEGRO_BITMAP *copy)
+{
+	if(!copy)
+		return nullptr;
+	
+	AtlasSheet *sheet = getSheet();
+	Item sheetItem;
+	if(!sheet->allocItem(copy, &sheetItem))
+	{
+		return nullptr;
+	}
+	
+	ResourceBitmap  *res = new ResourceBitmap(name);
+	sheetItem.id = res->id();
+	
+	idItemMap_.emplace(res->id(), sheetItem);
+	
+	return res;
+}
+
 ResourceBitmap *Atlas::load(const std::string &path)
 {
 	std::string fpath = path + ".png";

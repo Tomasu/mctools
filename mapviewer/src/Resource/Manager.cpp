@@ -8,6 +8,7 @@
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_physfs.h>
+#include <allegro5/allegro_primitives.h>
 #include <physfs.h>
 
 #include "NBT_Debug.h"
@@ -26,7 +27,7 @@ ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, co
 {
 	renderer_ = renderer;
 	
-	NBT_Debug("!");
+	NBT_Debug("ctor!");
 }
 
 bool ResourceManager::init(const char *argv0)
@@ -108,12 +109,23 @@ bool ResourceManager::init(const char *argv0)
 	
 	al_set_physfs_file_interface();
 	
+	NBT_Debug("create atlas");
 	atlas_ = new Atlas(renderer_, 512, 16);
+	
+	NBT_Debug("create missing block bitmap");
+	if(!createMissingBlockBitmap())
+	{
+		NBT_Debug("failed to create missing block bitmap???");
+		goto init_err;
+	}
 	
 	NBT_Debug("end");
 	return true;
 	
 init_err:
+	if(atlas_)
+		delete atlas_;
+	
 	if(PHYSFS_isInit())
 		PHYSFS_deinit();
 	
@@ -293,11 +305,11 @@ bool ResourceManager::getAtlasItem(Resource::ID id, Atlas::Item *item)
 	return atlas_->getItem(id, item);
 }
 
-Resource::ID ResourceManager::getBitmap(const std::string &name)
+Resource::ID ResourceManager::getLoadedBitmap(const std::string &name, bool fullpath)
 {
-	std::string path = bmpPath(name);
-	std::string fpath = resPath(path);
-	ResourceBitmap *bmp = nullptr;
+	std::string fpath = fullpath ? name : resPath(bmpPath(name));
+	
+	NBT_Debug("begin");
 	
 	Resource::ID rID = findID(fpath);
 	if(rID != Resource::INVALID_ID)
@@ -326,23 +338,41 @@ Resource::ID ResourceManager::getBitmap(const std::string &name)
 			return Resource::INVALID_ID;
 		}
 		
-		bmp = dynamic_cast<ResourceBitmap*>(it->second);
+		ResourceBitmap *bmp = dynamic_cast<ResourceBitmap*>(it->second);
 		if(!bmp)
 			return Resource::INVALID_ID;
 		
 		resToUnload_.erase(it);
 	}
-	else
+	
+	NBT_Debug("end");
+	return rID;
+}
+
+Resource::ID ResourceManager::getBitmap(const std::string &name)
+{
+	std::string path = bmpPath(name);
+	std::string fpath = resPath(path);
+	Resource *bmp = nullptr;
+	
+	NBT_Debug("begin");
+	
+	Resource::ID rID = getLoadedBitmap(fpath, true);
+	if(rID == Resource::INVALID_ID)
 	{
 		bmp = atlas_->load(fpath);
 		if(!bmp)
-			return Resource::INVALID_ID;
+			return getLoadedBitmap("missing");
+		
+		rID = bmp->id();
+		
+		resources_.emplace(bmp->id(), bmp);
+		nameToIDMap_.emplace(fpath, bmp->id());
 	}
 	
-	resources_.emplace(bmp->id(), bmp);
-	nameToIDMap_.emplace(fpath, bmp->id());
+	NBT_Debug("end");
 	
-	return bmp->id();
+	return rID;
 }
 
 bool ResourceManager::putBitmap(Resource::ID id)
@@ -351,6 +381,53 @@ bool ResourceManager::putBitmap(Resource::ID id)
 		return false;
 	
 	atlas_->remove(id);
+	return true;
+}
+
+bool ResourceManager::createMissingBlockBitmap()
+{
+	NBT_Debug("begin");
+	
+	ALLEGRO_BITMAP *bmp = al_create_bitmap(atlas_->gridSize(), atlas_->gridSize());
+	if(!bmp)
+		return false;
+	
+	ALLEGRO_STATE state;
+	al_store_state(&state, ALLEGRO_STATE_BITMAP);
+	
+	al_set_target_bitmap(bmp);
+	
+	for(int i = 0; i < 16; i++)
+	{
+		ALLEGRO_COLOR color;
+		int row = i / 4;
+		int col = i % 4;
+		
+		if((row + col) % 2)
+			color = al_map_rgb(0,0,0);
+		else
+			color = al_map_rgb(255,0,255);
+		
+		NBT_Debug("draw[%i][%i] at %ix%i to %ix%i", row, col, col * 4, row * 4, col * 4 + 4, row * 4 + 4);
+		al_draw_filled_rectangle(col * 4, row * 4, col * 4 + 4, row * 4 + 4, color);
+	}
+	
+	al_restore_state(&state);
+	
+	std::string path = resPath(bmpPath("missing"));
+	
+	ResourceBitmap *rb = atlas_->copy(path, bmp);
+	if(!rb)
+	{
+		al_destroy_bitmap(bmp);
+		return false;
+	}
+	
+	al_destroy_bitmap(bmp);
+	
+	resources_.emplace(rb->id(), rb);
+	nameToIDMap_.emplace(path, rb->id());
+	
 	return true;
 }
 

@@ -6,6 +6,7 @@
 #include <allegro5/allegro_opengl.h>
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_font.h>
+#include <allegro5/allegro_primitives.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <allegro5/shader.h>
@@ -162,6 +163,8 @@ bool Renderer::init(const char *argv0)
 		goto init_failed;
 	}
 	
+	glBindVertexArray(0);
+	
 	NBT_Debug("create resource manager");
 	resManager_ = new ResourceManager(this);
 	if(!resManager_->init(argv0))
@@ -176,22 +179,6 @@ bool Renderer::init(const char *argv0)
 		NBT_Debug("failed to create builtin font");
 		goto init_failed;
 	}
-	
-	bmp = al_create_bitmap(100, 100);
-	if(!bmp)
-	{
-		NBT_Debug("failed to create silly bitmap");
-		goto init_failed;
-	}
-	
-	//{
-	//	MCModel::Model *test_model = MCModel::Model::Create("block/hopper_down", resManager_);
-	//	test_model->dump();
-	//}
-	
-	al_set_target_bitmap(bmp);
-	al_clear_to_color(al_map_rgb(255,255,255));
-	al_set_target_backbuffer(dpy);
 	
 	al_register_event_source(queue, al_get_keyboard_event_source());
 	al_register_event_source(queue, al_get_mouse_event_source());

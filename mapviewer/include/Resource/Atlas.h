@@ -20,6 +20,7 @@ class Atlas
 		Atlas(Renderer *renderer, uint32_t maxSz = 1024, uint32_t gridSz = 16);
 		~Atlas();
 		
+		ResourceBitmap *copy(const std::string &name, ALLEGRO_BITMAP *bmp);
 		ResourceBitmap *load(const std::string &path);
 		void remove(Resource::ID id);
 		

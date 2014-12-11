@@ -28,6 +28,8 @@ class ResourceManager
 		bool getAtlasItem(Resource::ID id, Atlas::Item *item);
 		
 		Resource::ID getBitmap(const std::string &name);
+		Resource::ID getLoadedBitmap(const std::string &name, bool fullpath = false);
+		
 		bool putBitmap(Resource::ID id);
 		
 		// bitmapFromID?
@@ -62,6 +64,8 @@ class ResourceManager
 		
 		ALLEGRO_PATH *locateMinecraftData();
 		ALLEGRO_PATH *locateMinecraftJar(ALLEGRO_PATH *mc_path);
+		
+		bool createMissingBlockBitmap();
 		
 	private:
 		std::string baseResourcePath_;
