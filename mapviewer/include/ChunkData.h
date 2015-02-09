@@ -7,8 +7,11 @@
 #include <allegro5/allegro_primitives.h>
 
 class ResourceManager;
-class Chunk;
 class CUSTOM_VERTEX;
+class RendererChunk;
+
+class Chunk;
+
 class ChunkData
 {
 	public:
@@ -18,7 +21,7 @@ class ChunkData
 #else
 		static const int32_t MAX_SLICES = 1;
 #endif		
-		static ChunkData *Create(Chunk *c, ResourceManager *rm);
+		static ChunkData *Create(RendererChunk *rc, ResourceManager *rm);
 		
 		void draw(ALLEGRO_TRANSFORM *transform);
 		

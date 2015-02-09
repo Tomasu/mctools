@@ -18,6 +18,8 @@ class Map;
 class ChunkData;
 class AtlasSheet;
 
+class RendererChunk;
+
 class Renderer
 {
 	public:
@@ -36,7 +38,8 @@ class Renderer
 		void drawHud();
 		void draw();
 		
-		typedef std::pair<int32_t, int32_t> ChunkDataKey;
+		typedef std::pair<int32_t, int32_t> RendererChunkKey;
+		
 		ChunkDataKey getChunkKey(int32_t x, int32_t z) const { return std::make_pair(x, z); }
 		
 		bool setShaderSampler(AtlasSheet *sheet);
@@ -73,6 +76,7 @@ class Renderer
 		float ry_look;
 		
 		Vector3D camera_pos_;
+		Vector3D look_pos_;
 		
 		ResourceManager *resManager_;
 		
@@ -86,12 +90,17 @@ class Renderer
 		bool loadShaders(const char *vertex_file_path, const char *fragment_file_path);
 		bool loadAllegroShaders();
 		void setupProjection(ALLEGRO_TRANSFORM *m);
+		
+		void unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos);
 		void getWorldPos(Vector3D &pos);
 		
 		void negateTransform(ALLEGRO_TRANSFORM *m);
 		void transposeTransform(ALLEGRO_TRANSFORM *m);
 		
-		std::unordered_map<ChunkDataKey, ChunkData *> chunkData_;
+		void updateLookPos();
+		void drawSelection();
+		
+		std::unordered_map<RendererChunkKey, RendererChunk *> chunkData_;
 };
 
 #endif /* RENDERER_H_GUARD */

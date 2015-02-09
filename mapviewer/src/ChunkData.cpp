@@ -1,19 +1,21 @@
 #include "ChunkData.h"
 #include "BlockData.h"
+
 #include "Resource/Atlas.h"
 #include "Resource/Manager.h"
 #include "Resource/Model.h"
-#include "Chunk.h"
-#include "Block.h"
-#include "BlockMaps.h"
-#include "CustomVertex.h"
+
+#include "RendererChunk.h"
+
 #include "MCModel/Model.h"
 #include "MCModel/Variant.h"
 #include "MCModel/Element.h"
-#include <NBT_Tag_Compound.h>
-#include <NBT_Tag_List.h>
-#include <NBT_Tag_Byte_Array.h>
-#include <NBT_Tag_Int.h>
+
+#include "Chunk.h"
+#include "Block.h"
+#include "BlockMaps.h"
+
+#include "CustomVertex.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -36,12 +38,6 @@ ChunkData::ChunkData(int32_t x, int32_t z) : x_(x), z_(z)
 		NBT_Debug("failed to create vertex decl");
 	
 	memset(slice_, 0, sizeof(slice_));
-	
-	//for(int i = 0; i < size; i++)
-	//{
-	//	NBT_Debug("uv: %f,%f", data[i].txcoord.f1, data[i].txcoord.f2);
-	//}
-	
 }
 
 ChunkData::~ChunkData()
@@ -106,7 +102,7 @@ struct BLOCK_SIDES {
 	uint8_t dummy : 2;
 };
 
-ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
+ChunkData *ChunkData::Create(RendererChunk *rc, ResourceManager *resourceManager)
 {
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
 	CUSTOM_VERTEX *data = (CUSTOM_VERTEX*)malloc(sizeof(CUSTOM_VERTEX) * DATA_VTX_COUNT);
@@ -115,28 +111,18 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 		
 	memset(data, 0, DATA_VTX_COUNT * sizeof(CUSTOM_VERTEX));
 	
-	NBT_Tag_Compound *nbt = c->nbt()->getCompound("Level");
-	//NBT_Debug("%ix%i level name: %s children:%i", c->x(), c->z(), nbt->name().c_str(), nbt->count());
-	NBT_Tag_List *sections_tag = (NBT_Tag_List*)nbt->get("Sections");
 	int32_t xPos = nbt->getInt("xPos");
 	int32_t zPos = nbt->getInt("zPos");
 	
 	uint32_t total_size = 0;
 	
-	if(!sections_tag)
-	{
-		NBT_Debug("no sections tag?");
-		return nullptr;
-	}
-
-	auto &sections = sections_tag->items();
-	uint32_t num_sections = sections.size();
+	uint32_t num_sections = rc->getSectionCount();
 	
 	// TODO: maybe allow putting more than one section per slice if we end up with more than 16 sections.
 	//  currently minecraft only uses 16 sections per chunk.
 	//assert(num_sections <= MAX_SLICES);
 
-	ChunkData *cdata = new ChunkData(c->x(), c->z());
+	ChunkData *cdata = new ChunkData(rc->xPos(), rc->zPos());
 	
 	CUSTOM_VERTEX *dptr = data; // reset dptr, reuse data memory.
 	
@@ -146,18 +132,11 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 	uint8_t cull_mask[16*16][16][16];
 	memset(cull_mask, 0x00, sizeof(cull_mask));
 	
-	for(uint32_t i = 0; i < num_sections; i++)
+	/*
+	for(auto section: rc->sections())
 	{
-		NBT_Tag_Compound *section = (NBT_Tag_Compound *)sections[i];
-		
-		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
-		NBT_Tag_Byte_Array *add = section->getByteArray("Add");
-		
-		int32_t section_y = section->getByte("Y");
+		int32_t section_y = section->getY();
 		int32_t y = section_y * 16;
-		
-		uint8_t *block_data = blocks->data();
-		uint8_t *add_data = add ? add->data() : nullptr;
 		
 		for(int dy = 0; dy < 16; dy++)
 		{
@@ -165,32 +144,14 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 			{
 				for(int dx = 0; dx < 16; dx++)
 				{
-					int idx = dy*16*16 + dz*16 + dx;
+					BlockAddress baddr;
+					BlockInfo bi;
 					
-					/*
-					int idx_down = (dy-1)*16*16 + dz*16 + dx;
-					int idx_up = (dy+1)*16*16 + dz*16 + dx;
-					int idx_north = dy*16*16 + (dz-1)*16 + dx;
-					int idx_south = dy*16*16 + (dz+1)*16 + dx;
-					int idx_west = dy*16*16 + dz*16 + (dx-1);
-					int idx_east = dy*16*16 + dz*16 + (dx+1);
-					*/
+					if(!rc->getBlockAddress(dx, dy, dz, &baddr))
+						continue;
 					
-					
-					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
-					
-					
-					if(!BlockData::isSolidForCull(blkid))
+					if(!rc->isBlockSolidForCull(baddr))
 					{
-						//bs.all = 0;
-						/*
-						cull_sides[y+dy][dz][dx].top = 1;
-						cull_sides[y+dy][dz][dx].bottom = 1;
-						cull_sides[y+dy][dz][dx].north = 1;
-						cull_sides[y+dy][dz][dx].east = 1;
-						cull_sides[y+dy][dz][dx].south = 1;
-						cull_sides[y+dy][dz][dx].west = 1;
-						*/
 						cull_mask[y+dy][dz][dx] |= BlockData::IS_TRANSLUCENT;
 						continue;
 					}
@@ -231,22 +192,12 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 				}
 			}
 		}
-	}
+	}*/
 	
-	for(uint32_t i = 0; i < num_sections; i++)
+	for(auto section: rc->sections())
 	{
-		NBT_Tag_Compound *section = (NBT_Tag_Compound *)sections[i];
-		
-		NBT_Tag_Byte_Array *blocks = section->getByteArray("Blocks");
-		NBT_Tag_Byte_Array *add = section->getByteArray("Add");
-		NBT_Tag_Byte_Array *sdata = section->getByteArray("Data");
-		
-		int32_t section_y = section->getByte("Y");
+		int32_t section_y = section->yPos();
 		int32_t y = section_y * 16;
-		
-		uint8_t *block_data = blocks->data();
-		uint8_t *add_data = add ? add->data() : nullptr;
-		uint8_t *sub_data = sdata ? sdata->data() : nullptr;
 		
 #ifdef VIEWER_USE_MORE_VBOS
 		dptr = data;
@@ -259,54 +210,33 @@ ChunkData *ChunkData::Create(Chunk *c, ResourceManager *resourceManager)
 			{
 				for(int dx = 0; dx < 16; dx++)
 				{
-					int idx = dy*16*16 + dz*16 + dx;
+					BlockAddress baddr;
 					
-					int idx_down = (dy-1)*16*16 + dz*16 + dx;
-					int idx_up = (dy+1)*16*16 + dz*16 + dx;
-					int idx_north = dy*16*16 + (dz-1)*16 + dx;
-					int idx_south = dy*16*16 + (dz+1)*16 + dx;
-					int idx_west = dy*16*16 + dz*16 + (dx-1);
-					int idx_east = dy*16*16 + dz*16 + (dx+1);
-					
-					float tx_xfact = 0.0, tx_yfact = 0.0, tx_page = 0.0, tx_x = 0.0, tx_y = 0.0;
-					
-					uint32_t blkid = BlockData::ID(block_data, add_data, idx);
-					uint8_t sid = BlockData::SID(sub_data, idx);
-					
-					//if(!BlockData::isSolidForCull(blkid))
-					//	continue;
-					
-				//	NBT_Debug("sides: %x", block_sides[dy][dz][dx].all);
-					
-					/*
-					if(cull_sides[y+dy][dz][dx].top == 1 && cull_sides[y+dy][dz][dx].bottom == 1
-						&& cull_sides[y+dy][dz][dx].north == 1 && cull_sides[y+dy][dz][dx].east == 1 
-						&& cull_sides[y+dy][dz][dx].south == 1 && cull_sides[y+dy][dz][dx].west == 1 
-					)
+					if(!rc->getBlockAddress(dx, dy, dz, &baddr))
+					{
+						NBT_Debug("failed to find block %i, %i, %i", dx, dy, dz);
 						continue;
-					*/
+					}
 					
-
-					//std::string resName = "blocks/";
-					//std::string texName = BlockStateName(blkid, sid);
+					BlockInfo bi;
+					rc->getBlockInfo(baddr);
 					
-					//resName += texName;
-					
-					//std::string modName = "block/";
-					//modName += BlockStateName(blkid, sid);
-					
-					const char *blockStateName = BlockStateName(blkid, sid);
+					const char *blockStateName = rc->getBlockStateName(baddr);
 					if(!blockStateName)
 					{
-						NBT_Debug("did not find blockstatename for %i:%i", blkid, sid);
+						NBT_Debug("did not find blockstatename for %i:%i", bi.id, bi.data);
 						blockStateName = "unknown";
 					}
+					
 					Resource::ID rid = resourceManager->getModel(blockStateName);
 					if(rid == Resource::INVALID_ID)
 					{
 						NBT_Debug("failed to get model %s", blockStateName);
 						continue;
 					}
+					
+					if(blkid != BLOCK_AIR && blkid != BLOCK_BARRIER)
+						NBT_Debug("block:%i:%i %s", blkid, sid, blockStateName);
 					
 					ResourceModel *rmod = resourceManager->getModelResource(rid);
 					MCModel::Model *model = rmod->model();

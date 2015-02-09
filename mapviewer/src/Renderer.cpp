@@ -12,9 +12,11 @@
 #include <allegro5/shader.h>
 
 #include "Renderer.h"
-#include "ChunkData.h"
+#include "RendererChunk.h"
+
 #include "Resource/Manager.h"
 #include "Resource/AtlasSheet.h"
+
 #include "Level.h"
 #include "Map.h"
 #include "Vector.h"
@@ -56,6 +58,8 @@ void Renderer::uninit()
 	dpy_ = nullptr;
 	queue_ = nullptr;
 	prg_ = nullptr;
+	
+	// TODO: delete loaded chunks?
 }
 
 void Renderer::setLevel(Level *level)
@@ -265,6 +269,8 @@ void Renderer::run()
 	//sleep(10);
 	
 	bool redraw = false;
+	bool doUpdateLookPos = false;
+	
 	while(1)
 	{
 		ALLEGRO_EVENT ev;
@@ -333,13 +339,17 @@ void Renderer::run()
 			{
 				//camera_pos_.translate(x, y, z);
 				al_translate_transform_3d(&camera_transform_, x, y, z);
+				doUpdateLookPos = true;
 			}
 			
 			if(changeRotation)
 			{
 				al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
+				doUpdateLookPos = true;
 			}
 			
+			if(doUpdateLookPos)
+				updateLookPos();
 			
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
@@ -396,6 +406,8 @@ void Renderer::run()
 			//cam_.rx += dy / al_get_display_height(dpy_);
 			
 			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2.0, al_get_display_height(dpy_)/2.0);
+			
+			doUpdateLookPos = true;
 		}
  
       if(redraw && al_is_event_queue_empty(queue_))
@@ -529,20 +541,22 @@ void Renderer::draw()
 	
 	for(auto &it: chunkData_)
 	{
-		ChunkData *chunk = it.second;
+		RendererChunk *rc = it.second;
 		
 		ALLEGRO_TRANSFORM ctrans;
 		al_identity_transform(&ctrans);
-		al_translate_transform_3d(&ctrans, chunk->x()*15.0, 0.0, chunk->z()*15.0);
+		al_translate_transform_3d(&ctrans, rc->getX()*15.0, 0.0, rc->getZ()*15.0);
 		al_use_transform(&ctrans);
 		
-		chunk->draw(&ctrans);
+		rc->draw(&ctrans);
 	}
 	
 	glBindVertexArray(0);
 	
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
+
+	drawSelection();
 	
 	resManager_->unsetAtlasUniforms();
 }
@@ -592,19 +606,43 @@ void Renderer::drawHud()
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f y:%.0f z:%.0f", camera_pos_.getX(), camera_pos_.getY(), camera_pos_.getZ());
 }
 
+void Renderer::updateLookPos()
+{
+	ALLEGRO_TRANSFORM look;
+	al_copy_transform(&look, &camera_transform_);
+	
+	for(int i = 0; i < 4; i++)
+	{
+		al_translate_transform_3d(&look, 0.0, 0.0, 1.0);
+	
+		Vector3D pos;
+		unProject(&look, pos);
+		
+		int x = (int)floor(pos.x+0.5), y = (int)floor(pos.y+0.5);
+		int cx = x / 16, cy = z / 16;
+		int bx = x % 16, bz = z % 16;
+		
+		// getChunk will cause regions and chunks to be loaded, but they should already be loaded by now...
+		
+		auto it = chunkData_.find(getChunkKey(cx, cz));
+		if(it->second)
+		{
+			RendererChunk *rc = it->second;
+			// DO STUFF
+		}
+	}
+	
+	
+}
+
+void Renderer::unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos)
+{
+	al_unproject_transform(trans, &(pos.x), &(pos.y), &(pos.z));
+}
+
 void Renderer::getWorldPos(Vector3D &pos)
 {
-	float vec[3] = { camera_transform_.m[3][0], camera_transform_.m[3][1], camera_transform_.m[3][2] };
-	
-	ALLEGRO_TRANSFORM neg;
-	al_copy_transform(&neg, &camera_transform_);
-	//transposeTransform(&neg);
-	//negateTransform(&neg);
-	
-	pos.x = -(neg.m[0][0] * vec[0] + neg.m[0][1] * vec[1] + neg.m[0][2] * vec[2]);
-	pos.y = -(neg.m[1][0] * vec[0] + neg.m[1][1] * vec[1] + neg.m[1][2] * vec[2]);
-	pos.z = -(neg.m[2][0] * vec[0] + neg.m[2][1] * vec[1] + neg.m[2][2] * vec[2]);
-
+	unProject(&camera_transform_, pos);
 }
 
 void Renderer::transposeTransform(ALLEGRO_TRANSFORM *t)
@@ -647,14 +685,14 @@ void Renderer::processChunk(int x, int z)
 		return;
 	}
 	
-	ChunkData *cdata = ChunkData::Create(chunk, resManager_);
-	if(!cdata)
+	RendererChunk *rc = new RendererChunk();
+	if(!rc->init(chunk, resManager_))
 	{
-		NBT_Debug("failed to create chunkdata for chunk @ %ix%i", x, z);
+		NBT_Debug("failed to init RendererChunk(%i,%i)", x, z);
 		return;
 	}
 	
-	chunkData_.emplace(getChunkKey(x, z), cdata);
+	chunkData_.emplace(getChunkKey(x, z), rc);
 }
 
 void Renderer::autoLoadChunks(int x, int y)

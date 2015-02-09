@@ -1,0 +1,8 @@
+potential idea for handling block variants...
+
+
+use a json based table to map certain data to blockstate keys and values.
+
+like have a matcher for "Block Above Data" and "block data is age" type things. (goldenrail has powered and "shape" , have to check on that, and things like it)
+
+the json data is "compiled" into a table that the blockstate chooser code can interpret as quickly as is possible. hopefully not too much slower than hard coding it
