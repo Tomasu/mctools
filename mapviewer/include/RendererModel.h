@@ -1,7 +1,7 @@
 #ifndef RENDERER_MODEL_H_GUARD
 #define RENDERER_MODEL_H_GUARD
 
-namespace MCModel
+namespace Model
 {
 	class Model;
 }
@@ -14,12 +14,12 @@ class RendererModel
 		RendererModel() { }
 		~RendererModel() { }
 		
-		bool setModel(MCModel::Model *m);
+		bool setModel(Model::Model *m);
 		
-		MCModel::Variant *getVariant(RendererChunk *rc, uint32_t x, uint32_t y, uint32_t z);
+		Model::Variant *getVariant(RendererChunk *rc, uint32_t x, uint32_t y, uint32_t z);
 		
 	private:
-		MCModel::Model *model_;
+		Model::Model *model_;
 };
 
 #endif /* RENDERER_MODEL_H_GUARD */

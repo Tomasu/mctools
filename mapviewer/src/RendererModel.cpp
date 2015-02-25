@@ -1,7 +1,7 @@
 #include "RendererModel.h"
-#include "MCModel/Model.h"
+#include "Model/Model.h"
 
-bool RendererModel::setModel(MCModel::Model *m)
+bool RendererModel::setModel(Model::Model *m)
 {
 	if(!m)
 		return false;
