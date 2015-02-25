@@ -10,15 +10,16 @@
 #include "PairHash.h"
 #include "Util.h"
 #include "Vector.h"
+#include "Chunk.h"
 
 struct ALLEGRO_FONT;
 class ResourceManager;
+class Minecraft;
 class Level;
 class Map;
 class ChunkData;
 class AtlasSheet;
-
-class RendererChunk;
+class ChunkData;
 
 class Renderer
 {
@@ -31,16 +32,14 @@ class Renderer
 		void setLevel(Level *);
 		Level *getLevel();
 		
-		bool init(const char *argv0);
+		bool init(Minecraft *mc, const char *argv0);
 		void uninit();
 		void run();
 		
 		void drawHud();
 		void draw();
 		
-		typedef std::pair<int32_t, int32_t> RendererChunkKey;
-		
-		ChunkDataKey getChunkKey(int32_t x, int32_t z) const { return std::make_pair(x, z); }
+		Chunk::Key getChunkKey(int32_t x, int32_t z) const { return std::make_pair(x, z); }
 		
 		bool setShaderSampler(AtlasSheet *sheet);
 		void unsetShaderSampler(AtlasSheet *sheet);
@@ -80,7 +79,7 @@ class Renderer
 		
 		ResourceManager *resManager_;
 		
-		std::queue<std::pair<int32_t, int32_t>> loadChunkQueue;
+		std::queue<Chunk::Key> loadChunkQueue;
 		
 		void processChunk(int x, int z);
 		void autoLoadChunks(int x, int z);
@@ -100,7 +99,7 @@ class Renderer
 		void updateLookPos();
 		void drawSelection();
 		
-		std::unordered_map<RendererChunkKey, RendererChunk *> chunkData_;
+		std::unordered_map<Chunk::Key, ChunkData *> chunkData_;
 };
 
 #endif /* RENDERER_H_GUARD */

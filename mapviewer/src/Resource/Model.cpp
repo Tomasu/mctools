@@ -1,5 +1,5 @@
 #include "Resource/Model.h"
-#include "MCModel/Model.h"
+#include "Model/Model.h"
 
 ResourceModel::~ResourceModel()
 {

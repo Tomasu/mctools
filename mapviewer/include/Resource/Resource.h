@@ -10,7 +10,8 @@ class Resource
 		enum Type {
 			NoneType = 0,
 			BitmapType = 1,
-			ModelType = 2
+			ModelType = 2,
+			ModelVariantType = 3
 		};
 		
 		Resource(Type type, const std::string &path) : id_(0), refcnt_(0), type_(type), path_(path), pinned_(false) { id_ = NextID(); }

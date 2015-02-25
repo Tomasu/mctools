@@ -211,12 +211,13 @@ BlockData *BlockData::Create(uint32_t blkid, uint32_t)
 	return nullptr;
 }
 
-uint32_t UnknownBlockData::toVerticies(CUSTOM_VERTEX*,  float, float, float, float, float, float, float, float, uint8_t)
+uint32_t UnknownBlockData::toVerticies(CustomVertex*,  float, float, float, float, float, float, float, float, uint8_t)
 {
 	return 0;
 }
 
-uint32_t SolidBlockData::toVerticies(CUSTOM_VERTEX* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask)
+//uint32_t SolidBlockData::toVerticies(CustomVertex* buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask)
+uint32_t SolidBlockData::toVerticies(CustomVertex*, float, float, float, float, float, float, float, float, uint8_t)
 {
 	/*
 	uint8_t r = 0, g = 0, b = 0;

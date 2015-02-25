@@ -15,13 +15,11 @@ else()
    add_definitions(-O2 -s -march=native)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/vendor/rapidjson/include)
-
 add_definitions(-Wextra -Wall -pipe)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
 # tell CMake to search first in the cmake subdirectory for FIND_PACKAGE() or INCLUDE()
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake/)
 
 if(WANT_QNBT)
 	add_subdirectory(qnbt)

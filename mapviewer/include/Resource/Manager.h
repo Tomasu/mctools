@@ -9,12 +9,17 @@ typedef struct ALLEGRO_PATH ALLEGRO_PATH;
 #ifdef Bool
 #undef Bool
 #endif
-#include "rapidjson/document.h"
+
+//#include "rapidjson/document.h"
 
 class Renderer;
 class ALLEGRO_BITMAP;
 class ResourceBitmap;
 class ResourceModel;
+class ResourceModelVariant;
+class BlockInfo;
+class BlockAddress;
+class Minecraft;
 
 class ResourceManager
 {
@@ -23,7 +28,7 @@ class ResourceManager
 		ResourceManager(Renderer *renderer, const std::string &basePath = std::string("assets/minecraft"), const std::string &bmpSubPath = std::string("textures"), const std::string &modelSubPath = std::string("models"), const std::string &blockstateSubPath = std::string("blockstates"));
 		~ResourceManager();
 		
-		bool init(const char *argv0);
+		bool init(Minecraft *mc, const char *argv0);
 		
 		bool getAtlasItem(Resource::ID id, Atlas::Item *item);
 		
@@ -37,6 +42,10 @@ class ResourceManager
 		Resource::ID getModel(const std::string &name);
 		bool putModel(Resource::ID id);
 		ResourceModel *getModelResource(Resource::ID id);
+		
+		Resource::ID getModelVariant(const BlockInfo &addr);
+		bool putModelVariant(Resource::ID id);
+		ResourceModelVariant *getModelVariantResource(Resource::ID id);
 		
 		Resource::ID getResource(Resource::Type type, const std::string &name);
 		Resource::ID refResource(Resource::Type type, const std::string &name);
@@ -58,14 +67,16 @@ class ResourceManager
 		bool setAtlasUniforms();
 		void unsetAtlasUniforms();
 		
-		rapidjson::Document *getModelJson(const std::string &name);
-		rapidjson::Document *getBlockstateJson(const std::string &name);
-		rapidjson::Document *getJson(const std::string &name);
+		//rapidjson::Document *getModelJson(const std::string &name);
+		//rapidjson::Document *getBlockstateJson(const std::string &name);
+		//rapidjson::Document *getJson(const std::string &name);
 		
-		ALLEGRO_PATH *locateMinecraftData();
-		ALLEGRO_PATH *locateMinecraftJar(ALLEGRO_PATH *mc_path);
+		//ALLEGRO_PATH *locateMinecraftData();
+		//ALLEGRO_PATH *locateMinecraftJar(ALLEGRO_PATH *mc_path);
 		
 		bool createMissingBlockBitmap();
+		
+		const char *getBlockStateName(const BlockAddress &baddr);
 		
 	private:
 		std::string baseResourcePath_;
@@ -82,7 +93,7 @@ class ResourceManager
 		
 		// json doc cache
 		
-		std::unordered_map<std::string, rapidjson::Document *> jsonDocCache_;
+		//std::unordered_map<std::string, rapidjson::Document *> jsonDocCache_;
 		
 		Atlas *atlas_;
 		
@@ -94,6 +105,7 @@ class ResourceManager
 		std::string bmpPath(const std::string &name);
 		std::string modelPath(const std::string &name);
 		std::string blockstatePath(const std::string &name);
+		std::string modelVariantPath(const std::string &name, uint32_t variant);
 		
 		Resource::ID findID(const std::string &path);
 		

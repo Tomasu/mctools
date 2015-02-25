@@ -3,14 +3,14 @@
 #include <stdint.h>
 
 
-struct CUSTOM_VERTEX;
+struct CustomVertex;
 
 class BlockData
 {
 	public:
 		const static int32_t NUM_VERTS = 36;
 		static BlockData *Create(uint32_t blkid, uint32_t data);
-		virtual uint32_t toVerticies(CUSTOM_VERTEX *buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask) = 0;
+		virtual uint32_t toVerticies(CustomVertex *buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask) = 0;
 		
 		static bool isSolid(uint32_t blockid);
 		static bool isTranslucent(uint32_t blockid);
@@ -65,14 +65,14 @@ class BlockData
 class UnknownBlockData : public BlockData
 {
 	public:
-		uint32_t toVerticies(CUSTOM_VERTEX*, float, float, float, float, float, float, float, float, uint8_t);
+		uint32_t toVerticies(CustomVertex*, float, float, float, float, float, float, float, float, uint8_t);
 };
 
 class SolidBlockData : public BlockData
 {
 		
 	public:
-		uint32_t toVerticies(CUSTOM_VERTEX *buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask);
+		uint32_t toVerticies(CustomVertex *buff, float xoff, float zoff, float yoff, float tx_xfact, float tx_yfact, float tx_x, float tx_y, float tx_page, uint8_t side_mask);
 };
 
 #endif /* BLOCKDATA_H_GUARD */

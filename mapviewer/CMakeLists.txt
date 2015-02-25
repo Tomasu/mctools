@@ -9,12 +9,14 @@ set(VIEWER_HEADERS
 	include/Renderer.h
 	include/BlockData.h
 	include/ChunkData.h
+	include/AllegroIOAccessInterface.h
 	include/Resource/Atlas.h
 	include/Resource/AtlasSheet.h
 	include/Resource/AtlasBitmap.h
 	include/Resource/Bitmap.h
 	include/Resource/Manager.h
 	include/Resource/Model.h
+	include/Resource/ModelVariant.h
 	include/al_ext.h
 )
 
@@ -24,12 +26,14 @@ set(VIEWER_SOURCE
 	src/Renderer.cpp
 	src/ChunkData.cpp
 	src/BlockData.cpp
+	src/AllegroIOAccessInterface.cpp
 	src/Resource/Manager.cpp
 	src/Resource/Resource.cpp
 	src/Resource/Atlas.cpp
 	src/Resource/AtlasSheet.cpp
 	src/Resource/AtlasBitmap.cpp
 	src/Resource/Model.cpp
+	src/Resource/ModelVariant.cpp
 	src/al_ext.c
 	shaders/default.vtx
 	shaders/default.pxl
@@ -54,12 +58,14 @@ if(PKG_CONFIG_FOUND)
 			add_definitions(-pg)
 			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
 		endif(VIEWER_PROFILE)
-		
+
 		message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable renderer.")
 		add_definitions(${ALLEGRO_CFLAGS})
-		message(STATUS "cflags ${ALLEGRO_CFLAGS} libs ${ALLEGRO_LIBRARIES} ${ALLEGRO_MAIN_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES}")
-		find_package(LibMCMap REQUIRED)
+		#message(STATUS "cflags ${ALLEGRO_CFLAGS} libs ${ALLEGRO_LIBRARIES} ${ALLEGRO_MAIN_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES}")
+		
 		find_package(LibNBT REQUIRED)
+		find_package(LibIOAccess REQUIRED)
+		find_package(LibMCMap REQUIRED)
 		
 		copy_to_build(shaders/default.vtx)
 		copy_to_build(shaders/default.pxl)
@@ -71,12 +77,15 @@ if(PKG_CONFIG_FOUND)
 			add_definitions(-DVIEWER_USE_MORE_VBOS)
 		endif()
 		
-		include_directories(${PROJECT_SOURCE_DIR}/include ${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS})
+		include_directories(${PROJECT_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/vendor/rapidjson/include ${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS})
 		add_executable(viewer ${VIEWER_SOURCE} ${VIEWER_HEADERS})
-		target_link_libraries(viewer ${ALLEGRO_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} GL ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
-
-		message(STATUS "Libs: ${ALLEGRO_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} GL ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY}")
 		
+		# FIXME: ioaccess is somehow being linked in even if we omit it from this list.
+		set(LIBS ${ALLEGRO_LIBRARIES} ${LIBIOACCESS_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} GL ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
+		message(STATUS "libs: ${LIBS}")
+		message(STATUS "libs2: allegro:${ALLEGRO_LIBRARIES} libmcmap:${LIBMCMAP_LIBRARIES} libnbt:${LIBNBT_LIBRARIES} libioaccess:${LIBIOACCESS_LIBRARIES} GL:GL allegro-prim:${ALLEGRO_PRIMITIVES_LIBRARIES} allegro-image:${ALLEGRO_IMAGE_LIBRARIES} allegro-font:${ALLEGRO_FONT_LIBRARIES} allegro-physfs:${ALLEGRO_PHYSFS_LIBRARIES} physfs:${PHYSFS_LIBRARY}")
+		target_link_libraries(viewer ${LIBS})
+
 		if(EXISTS "${CMAKE_SOURCE_DIR}/assets")
 			message(STATUS "copy assets")
 		#	copy_data_dir_to_build(copy_viewer_assest

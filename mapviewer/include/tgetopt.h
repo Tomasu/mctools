@@ -54,7 +54,7 @@ class TGOBoolOption : public TGOOption<bool>
 		TGOBoolOption(const std::string &name) : TGOOption(name), boolValue(false) { }
 		virtual ~TGOBoolOption() { }
 		
-		virtual bool validate(const std::string &value) { return false; }
+		virtual bool validate(const std::string &) { return false; }
 		
 		virtual bool value()
 		{
@@ -86,7 +86,7 @@ class TGOStringOption : public TGOOption<std::string>
 		TGOStringOption(const std::string &name, const std::string &stringValue) : TGOOption(name, true), stringValue(stringValue) { }
 		virtual ~TGOStringOption() { }
 		
-		virtual bool validate(const std::string &value)
+		virtual bool validate(const std::string &)
 		{
 			return true; // all things are strings
 		}

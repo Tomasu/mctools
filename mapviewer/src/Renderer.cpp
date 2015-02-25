@@ -10,9 +10,10 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <allegro5/shader.h>
+#include "al_ext.h"
 
 #include "Renderer.h"
-#include "RendererChunk.h"
+#include "ChunkData.h"
 
 #include "Resource/Manager.h"
 #include "Resource/AtlasSheet.h"
@@ -86,7 +87,7 @@ Level *Renderer::getLevel()
 	return level_;
 }
 
-bool Renderer::init(const char *argv0)
+bool Renderer::init(Minecraft *mc, const char *argv0)
 {
 	NBT_Debug("begin");
 	
@@ -171,7 +172,7 @@ bool Renderer::init(const char *argv0)
 	
 	NBT_Debug("create resource manager");
 	resManager_ = new ResourceManager(this);
-	if(!resManager_->init(argv0))
+	if(!resManager_->init(mc, argv0))
 	{
 		NBT_Debug("failed to init resource manager");
 		goto init_failed;
@@ -504,8 +505,8 @@ void Renderer::negateTransform(ALLEGRO_TRANSFORM *m)
 
 void Renderer::draw()
 {
-	int dw = al_get_display_width(dpy_);
-   int dh = al_get_display_height(dpy_);
+	//int dw = al_get_display_width(dpy_);
+   //int dh = al_get_display_height(dpy_);
 	
 	ALLEGRO_TRANSFORM trans;
 	al_identity_transform(&trans);
@@ -541,14 +542,14 @@ void Renderer::draw()
 	
 	for(auto &it: chunkData_)
 	{
-		RendererChunk *rc = it.second;
+		ChunkData *cd = it.second;
 		
 		ALLEGRO_TRANSFORM ctrans;
 		al_identity_transform(&ctrans);
-		al_translate_transform_3d(&ctrans, rc->getX()*15.0, 0.0, rc->getZ()*15.0);
+		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
 		al_use_transform(&ctrans);
 		
-		rc->draw(&ctrans);
+		cd->draw(&ctrans);
 	}
 	
 	glBindVertexArray(0);
@@ -556,7 +557,7 @@ void Renderer::draw()
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
 
-	drawSelection();
+	//drawSelection();
 	
 	resManager_->unsetAtlasUniforms();
 }
@@ -570,8 +571,8 @@ void Renderer::drawHud()
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 	
-	int dw = al_get_display_width(dpy_);
-   int dh = al_get_display_height(dpy_);
+	//int dw = al_get_display_width(dpy_);
+   //int dh = al_get_display_height(dpy_);
 	
 	/*ALLEGRO_TRANSFORM trans;
 	al_identity_transform(&trans);
@@ -618,16 +619,16 @@ void Renderer::updateLookPos()
 		Vector3D pos;
 		unProject(&look, pos);
 		
-		int x = (int)floor(pos.x+0.5), y = (int)floor(pos.y+0.5);
-		int cx = x / 16, cy = z / 16;
-		int bx = x % 16, bz = z % 16;
+		int x = (int)floor(pos.x+0.5), z = (int)floor(pos.z+0.5);
+		int cx = x / 16, cz = z / 16;
+		//int bx = x % 16, bz = z % 16;
 		
 		// getChunk will cause regions and chunks to be loaded, but they should already be loaded by now...
 		
 		auto it = chunkData_.find(getChunkKey(cx, cz));
 		if(it->second)
 		{
-			RendererChunk *rc = it->second;
+			//RendererChunk *rc = it->second;
 			// DO STUFF
 		}
 	}
@@ -637,7 +638,7 @@ void Renderer::updateLookPos()
 
 void Renderer::unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos)
 {
-	al_unproject_transform(trans, &(pos.x), &(pos.y), &(pos.z));
+	al_unproject_transform_3d(trans, &(pos.x), &(pos.y), &(pos.z));
 }
 
 void Renderer::getWorldPos(Vector3D &pos)
@@ -685,14 +686,14 @@ void Renderer::processChunk(int x, int z)
 		return;
 	}
 	
-	RendererChunk *rc = new RendererChunk();
-	if(!rc->init(chunk, resManager_))
-	{
-		NBT_Debug("failed to init RendererChunk(%i,%i)", x, z);
+	auto cdata = ChunkData::Create(chunk, resManager_);
+	if(!cdata)
+   {
+		NBT_Debug("failed to create chunkdata for chunk @ %ix%i", x, z);
 		return;
-	}
-	
-	chunkData_.emplace(getChunkKey(x, z), rc);
+   }
+
+	chunkData_.emplace(getChunkKey(x, z), cdata);
 }
 
 void Renderer::autoLoadChunks(int x, int y)

@@ -1,10 +1,19 @@
+#include "Minecraft.h"
+
 #include "Resource/Manager.h"
 #include "Resource/Resource.h"
 #include "Resource/Bitmap.h"
 #include "Resource/Atlas.h"
 #include "Resource/Model.h"
+#include "Resource/ModelVariant.h"
 #include "Renderer.h"
-#include "MCModel/Model.h"
+
+#include "Model/Model.h"
+#include "Model/Variant.h"
+#include "Model/Element.h"
+
+#include "BlockInfo.h"
+#include "CustomVertex.h"
 
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_physfs.h>
@@ -30,15 +39,14 @@ ResourceManager::ResourceManager(Renderer *renderer, const std::string &base, co
 	NBT_Debug("ctor!");
 }
 
-bool ResourceManager::init(const char *argv0)
+bool ResourceManager::init(Minecraft *mc, const char *argv0)
 {
 	NBT_Debug("begin");
 	
 	ALLEGRO_PATH *data_path = nullptr;
 	const char *data_path_cstr = nullptr;
 	
-	ALLEGRO_PATH *mc_path = nullptr, *jar_path = nullptr;
-	const char *jar_path_cstr = nullptr;
+	std::string mc_path, jar_path;
 	
 	if (!PHYSFS_init(argv0))
 	{
@@ -85,27 +93,28 @@ bool ResourceManager::init(const char *argv0)
 		goto init_err;
 	}
 	
-	mc_path = locateMinecraftData();
-	if(!mc_path)
+	mc_path = mc->saves().at(0);
+	if(!mc_path.length())
 		goto init_err;
 	
-	NBT_Debug("mc path: %s", al_path_cstr(mc_path, ALLEGRO_NATIVE_PATH_SEP));
+	NBT_Debug("mc path: %s", mc_path.c_str());
 	
-	jar_path = locateMinecraftJar(mc_path);
-	if(!jar_path)
+	jar_path = mc->selectedJar();
+	if(!jar_path.length())
 	{
 		NBT_Debug("failed to locate minecraft jar");
 		goto init_err;
 	}
 	
-	jar_path_cstr = al_path_cstr(jar_path, ALLEGRO_NATIVE_PATH_SEP);
-	NBT_Debug("jar path: %s", jar_path_cstr);
+	NBT_Debug("jar path: %s", jar_path.c_str());
 	
-	if(PHYSFS_mount(jar_path_cstr, nullptr, 1) == 0)
+	if(PHYSFS_mount(jar_path.c_str(), nullptr, 1) == 0)
 	{
-		NBT_Debug("failed to mount jar (%s): %s", jar_path_cstr, PHYSFS_getLastError());
+		NBT_Debug("failed to mount jar (%s): %s", jar_path.c_str(), PHYSFS_getLastError());
 		goto init_err;
 	}
+	
+	
 	
 	al_set_physfs_file_interface();
 	
@@ -139,10 +148,10 @@ ResourceManager::~ResourceManager()
 {
 	delete atlas_;
 	
-	for(auto doc: jsonDocCache_)
-	{
-		delete doc.second;
-	}
+	//for(auto doc: jsonDocCache_)
+	//{
+	//	delete doc.second;
+	//}
 	
 	for(auto res: resToUnload_)
 	{
@@ -173,6 +182,15 @@ std::string ResourceManager::modelPath(const std::string &name)
 std::string ResourceManager::blockstatePath(const std::string &name)
 {
 	return blockstateSubPath_ + "/" + name;
+}
+
+std::string ResourceManager::modelVariantPath(const std::string& name, uint32_t variant)
+{
+	std::string path = blockstateSubPath_ + "/";
+	path += name + "/";
+	path += '0' + variant;
+	
+	return path;
 }
 
 Resource *ResourceManager::findResource(Resource::ID id)
@@ -433,8 +451,6 @@ bool ResourceManager::createMissingBlockBitmap()
 
 ResourceModel *ResourceManager::getModelResource(Resource::ID rID)
 {
-	ResourceModel *model = nullptr;
-	
 	Resource *res = findResource(rID);
 	if(!res)
 	{
@@ -489,7 +505,7 @@ Resource::ID ResourceManager::getModel(const std::string& name)
 	}
 	else
 	{
-		MCModel::Model *mcmod = MCModel::Model::Create(name, this);
+		Model::Model *mcmod = Model::Model::Create(name);
 		if(!mcmod)
 		{
 			NBT_Debug("failed to load model %s %s", name.c_str(), fpath.c_str());
@@ -509,6 +525,194 @@ bool ResourceManager::putModel(Resource::ID id)
 {
 	return putResource(id);
 }
+
+ResourceModelVariant* ResourceManager::getModelVariantResource(Resource::ID id)
+{
+	Resource *res = findResource(id);
+	if(!res)
+	{
+		// TODO: try and refactor this code into a method that can be shared
+		auto it = resToUnload_.find(res->path());
+		if(it != resToUnload_.end() && it->second == nullptr)
+			return nullptr;
+		
+		res = it->second;
+		if(!res || res->type() != Resource::ModelVariantType)
+			return nullptr;
+		
+		resToUnload_.erase(it);
+		resources_.emplace(res->id(), res);
+	}
+	else if(res->type() != Resource::ModelVariantType)
+		return nullptr;
+	
+	res->ref();
+	
+	return (ResourceModelVariant*)res;
+}
+
+Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
+{
+	// FIXME: actually grab correct variant, rather than the first.
+	uint32_t variant_id = 0;
+	
+	std::string path = modelVariantPath(info.state_name, variant_id);
+	std::string fpath = resPath(path);
+	
+	ResourceModelVariant *variant  = nullptr;
+	
+	Resource::ID rID = findID(fpath);
+	if(rID != Resource::INVALID_ID)
+	{
+		// TODO: refactor this code to pull out as much of the following as is possble.
+		Resource *res = findResource(rID);
+		if(res)
+		{
+			if(res->type() != Resource::ModelVariantType)
+				return Resource::INVALID_ID;
+			
+			res->ref();
+			return res->id();
+		}
+		
+		auto it = resToUnload_.find(fpath);
+		if(it != resToUnload_.end() && it->second == nullptr)
+			return Resource::INVALID_ID;
+		
+		variant = dynamic_cast<ResourceModelVariant*>(it->second);
+		if(!variant)
+			return Resource::INVALID_ID;
+		
+		resToUnload_.erase(it);
+	}
+	else
+	{
+		Resource::ID mID = getModel(info.state_name);
+		if(mID == Resource::INVALID_ID)
+			return Resource::INVALID_ID;
+	
+		ResourceModel *model = getModelResource(mID);
+		if(!model || !model->model())
+			return Resource::INVALID_ID;
+
+		uint32_t vertex_count = 0;
+		CustomVertex *vertex_data = nullptr, *vertex_data_ptr = nullptr;
+		
+		// FIXME: actually grab correct variant, rather than the first.
+		auto model_variant = model->model()->getVariants().at(variant_id);
+		
+		for(auto element: model_variant->elements_)
+		{
+			vertex_count += element->vertex_count;
+		}
+		
+		vertex_data_ptr = vertex_data = new CustomVertex[vertex_count];
+		
+		for(auto element: model_variant->elements_)
+		{
+
+			Model::Element::POINT_MAP pmap_ = Model::Element::POINT_MAP(from, to);
+	
+			NBT_Debug("got %i faces, need %i vertices", face_count, vertex_count);
+			
+			if(element.faces[Model::Face::FACE_UP].direction == Model::Face::FACE_UP)
+			{
+				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_UP].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p2());
+				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p1());
+				
+				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
+				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p2());
+			}
+			
+			if(element.faces[Model::Face::FACE_SOUTH].direction == Model::Face::FACE_SOUTH)
+			{
+				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_SOUTH].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p2());
+				
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p2());
+				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p4());
+			}
+			
+			if(element.faces[Model::Face::FACE_WEST].direction == Model::Face::FACE_WEST)
+			{
+				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_WEST].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
+				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p2());
+				
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
+			}
+			
+			if(element.faces[Model::Face::FACE_NORTH].direction == Model::Face::FACE_NORTH)
+			{
+				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_NORTH].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p2());
+				
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p2());
+				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p4());
+			}
+			
+			if(element.faces[Model::Face::FACE_EAST].direction == Model::Face::FACE_EAST)
+			{
+				Model::Element::UV_MAP uv = UV_MAP(element.faces[Model::Face::FACE_EAST].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p2());
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p4());
+				
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p4());
+			}
+			
+			if(element.faces[Model::Face::FACE_DOWN].direction == Model::Face::FACE_DOWN)
+			{
+				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_DOWN].uv);
+				
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p3());
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p4());
+				
+				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
+				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p4());
+				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p2());
+			}
+	
+			memcpy(vertex_data_ptr, element->vertices, sizeof(*(element->vertices)) * element->vertex_count);
+			vertex_data_ptr += element->vertex_count;
+			
+			
+		}
+		
+		variant = new ResourceModelVariant(fpath, vertex_data, vertex_count);
+	}
+	
+	resources_.emplace(variant->id(), variant);
+	nameToIDMap_.emplace(fpath, variant->id());
+	
+	return variant->id();
+}
+
+bool ResourceManager::putModelVariant(Resource::ID id)
+{
+	return putResource(id);
+}
+
 
 bool ResourceManager::resourceIsPinned(Resource::ID id)
 {
@@ -564,20 +768,20 @@ bool ResourceManager::setAtlasUniforms()
 	return true;
 }
 
-rapidjson::Document *ResourceManager::getBlockstateJson(const std::string &name)
-{
-	return getJson(resPath(blockstatePath(name)));
-}
+//rapidjson::Document *ResourceManager::getBlockstateJson(const std::string &name)
+//{
+//	return getJson(resPath(blockstatePath(name)));
+//}
 
-rapidjson::Document *ResourceManager::getModelJson(const std::string& name)
-{
-	// cache ftw
-	std::string path = resPath(modelPath(name));
-	
-	return getJson(resPath(modelPath(name)));
-}
+//rapidjson::Document *ResourceManager::getModelJson(const std::string& name)
+//{
+//	// cache ftw
+//	std::string path = resPath(modelPath(name));
+//	
+//	return getJson(resPath(modelPath(name)));
+//}
 
-rapidjson::Document *ResourceManager::getJson(const std::string& p)
+/*rapidjson::Document *ResourceManager::getJson(const std::string& p)
 {
 	std::string path = p;
 	rapidjson::Document *doc = nullptr;
@@ -612,7 +816,7 @@ rapidjson::Document *ResourceManager::getJson(const std::string& p)
 	
 	memset(buffer, 0, fsize+1);
 	
-	if(al_fread(fh, buffer, fsize) != fsize)
+	if(al_fread(fh, buffer, fsize) != (size_t)fsize)
 	{
 		//NBT_Error("failed to read %i bytes from file", fsize);
 		goto getJson_err;
@@ -659,8 +863,9 @@ getJson_err:
 		al_fclose(fh);
 	
 	return nullptr;
-}
+}*/
 
+/*
 ALLEGRO_PATH *ResourceManager::locateMinecraftData()
 {
 	NBT_Debug("begin");
@@ -863,3 +1068,4 @@ err:
 	
 	return nullptr;
 }
+*/

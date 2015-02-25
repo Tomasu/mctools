@@ -1,19 +1,22 @@
+#include <stddef.h>
+
 #include "ChunkData.h"
 #include "BlockData.h"
 
 #include "Resource/Atlas.h"
 #include "Resource/Manager.h"
 #include "Resource/Model.h"
+#include "Resource/ModelVariant.h"
 
-#include "RendererChunk.h"
-
-#include "MCModel/Model.h"
-#include "MCModel/Variant.h"
-#include "MCModel/Element.h"
+#include "Model/Model.h"
+#include "Model/Variant.h"
+#include "Model/Element.h"
 
 #include "Chunk.h"
+#include "ChunkSection.h"
 #include "Block.h"
 #include "BlockMaps.h"
+#include "BlockInfo.h"
 
 #include "CustomVertex.h"
 
@@ -26,14 +29,14 @@
 ChunkData::ChunkData(int32_t x, int32_t z) : x_(x), z_(z)
 {
 	ALLEGRO_VERTEX_ELEMENT elements[] = {
-		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CUSTOM_VERTEX, pos) },
-		{ ALLEGRO_PRIM_TEX_COORD, ALLEGRO_PRIM_FLOAT_2, offsetof(CUSTOM_VERTEX, txcoord) },
-		{ ALLEGRO_PRIM_USER_ATTR, ALLEGRO_PRIM_FLOAT_1, offsetof(CUSTOM_VERTEX, tx_page) },
-		{ ALLEGRO_PRIM_COLOR_ATTR, ALLEGRO_PRIM_FLOAT_4, offsetof(CUSTOM_VERTEX, color) },
+		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CustomVertex, pos) },
+		{ ALLEGRO_PRIM_TEX_COORD, ALLEGRO_PRIM_FLOAT_2, offsetof(CustomVertex, txcoord) },
+		{ ALLEGRO_PRIM_USER_ATTR, ALLEGRO_PRIM_FLOAT_1, offsetof(CustomVertex, tx_page) },
+		{ ALLEGRO_PRIM_COLOR_ATTR, ALLEGRO_PRIM_FLOAT_4, offsetof(CustomVertex, color) },
 		{ 0, 0, 0 }
 	};
 	
-	vtxdecl_ = al_create_vertex_decl(elements, sizeof(CUSTOM_VERTEX));
+	vtxdecl_ = al_create_vertex_decl(elements, sizeof(CustomVertex));
 	if(!vtxdecl_)
 		NBT_Debug("failed to create vertex decl");
 	
@@ -51,7 +54,7 @@ ChunkData::~ChunkData()
 	al_destroy_vertex_decl(vtxdecl_);
 }
 
-bool ChunkData::fillSlice(int slice_idx, CUSTOM_VERTEX* data, uint32_t vtx_count)
+bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 {
 	//NBT_Debug("slice_idx:%i", slice_idx);
 	assert(slice_idx >= 0 && slice_idx < MAX_SLICES);
@@ -65,7 +68,7 @@ bool ChunkData::fillSlice(int slice_idx, CUSTOM_VERTEX* data, uint32_t vtx_count
 	if(!slice.vbo)
 		NBT_Debug("failed to create vertex buffer :(");
 	
-	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice_idx, ((double)slice.vtx_count*sizeof(CUSTOM_VERTEX))/1024.0/1024.0);
+	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice_idx, ((double)slice.vtx_count*sizeof(CustomVertex))/1024.0/1024.0);
 	
 	return true;
 }
@@ -102,102 +105,33 @@ struct BLOCK_SIDES {
 	uint8_t dummy : 2;
 };
 
-ChunkData *ChunkData::Create(RendererChunk *rc, ResourceManager *resourceManager)
+ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 {
 	const uint32_t DATA_VTX_COUNT = MAX_VERTS / MAX_SLICES;
-	CUSTOM_VERTEX *data = (CUSTOM_VERTEX*)malloc(sizeof(CUSTOM_VERTEX) * DATA_VTX_COUNT);
+	CustomVertex *data = (CustomVertex*)malloc(sizeof(CustomVertex) * DATA_VTX_COUNT);
 	if(!data)
 		return nullptr;
 		
-	memset(data, 0, DATA_VTX_COUNT * sizeof(CUSTOM_VERTEX));
-	
-	int32_t xPos = nbt->getInt("xPos");
-	int32_t zPos = nbt->getInt("zPos");
+	memset(data, 0, DATA_VTX_COUNT * sizeof(CustomVertex));
 	
 	uint32_t total_size = 0;
-	
-	uint32_t num_sections = rc->getSectionCount();
 	
 	// TODO: maybe allow putting more than one section per slice if we end up with more than 16 sections.
 	//  currently minecraft only uses 16 sections per chunk.
 	//assert(num_sections <= MAX_SLICES);
 
-	ChunkData *cdata = new ChunkData(rc->xPos(), rc->zPos());
+	int32_t x_off = chunk->x() * 16;
+	int32_t z_off = chunk->z() * 16;
 	
-	CUSTOM_VERTEX *dptr = data; // reset dptr, reuse data memory.
+	ChunkData *cdata = new ChunkData(chunk->x(), chunk->z());
 	
-	//BLOCK_SIDES cull_sides[16*16][16][16];
-	//memset(cull_sides, 0x00, sizeof(cull_sides));
+	CustomVertex *dptr = data; // reset dptr, reuse data memory.
 	
-	uint8_t cull_mask[16*16][16][16];
-	memset(cull_mask, 0x00, sizeof(cull_mask));
-	
-	/*
-	for(auto section: rc->sections())
+	for(uint32_t i = 0; i < chunk->sectionCount(); i++)
 	{
-		int32_t section_y = section->getY();
-		int32_t y = section_y * 16;
-		
-		for(int dy = 0; dy < 16; dy++)
-		{
-			for(int dz = 0; dz < 16; dz++)
-			{
-				for(int dx = 0; dx < 16; dx++)
-				{
-					BlockAddress baddr;
-					BlockInfo bi;
-					
-					if(!rc->getBlockAddress(dx, dy, dz, &baddr))
-						continue;
-					
-					if(!rc->isBlockSolidForCull(baddr))
-					{
-						cull_mask[y+dy][dz][dx] |= BlockData::IS_TRANSLUCENT;
-						continue;
-					}
-					
-					//if(idx_up >= 0 && idx_up < 4096)
-					if(y+dy+1 < 16*16)
-					{
-						cull_mask[y+dy+1][dz][dx] |= BlockData::FACE_DOWN;
-					}
-					
-					//if(idx_down >= 0 && idx_down < 4096)
-					if(y+dy-1 >= 0)
-					{
-						cull_mask[y+dy-1][dz][dx] |= BlockData::FACE_UP;
-					}
-					
-					if(dz - 1 >= 0)
-					{
-						cull_mask[y+dy][dz-1][dx] |= BlockData::FACE_SOUTH;
-					}
-					
-					//if(idx_east >= 0 && idx_east < 4096)
-					if(dx+1 < 16)
-					{
-						cull_mask[y+dy][dz][dx+1] |= BlockData::FACE_WEST;
-					}
-					
-					//if(idx_south >= 0 && idx_south < 4096)
-					if(dz+1 < 16)
-					{
-						cull_mask[y+dy][dz+1][dx] |= BlockData::FACE_NORTH;
-					}
-					
-					if(dx-1 >= 0)
-					{
-						cull_mask[y+dy][dz][dx-1] |= BlockData::FACE_EAST;
-					}
-				}
-			}
-		}
-	}*/
-	
-	for(auto section: rc->sections())
-	{
-		int32_t section_y = section->yPos();
-		int32_t y = section_y * 16;
+		ChunkSection *section = chunk->getSection(i);
+		int32_t y = section->y() * 16;
+		//int32_t y = section_y * 16;
 		
 #ifdef VIEWER_USE_MORE_VBOS
 		dptr = data;
@@ -212,140 +146,55 @@ ChunkData *ChunkData::Create(RendererChunk *rc, ResourceManager *resourceManager
 				{
 					BlockAddress baddr;
 					
-					if(!rc->getBlockAddress(dx, dy, dz, &baddr))
+					if(!chunk->getBlockAddress(x_off + dx, y + dy, z_off + dz, &baddr))
 					{
-						NBT_Debug("failed to find block %i, %i, %i", dx, dy, dz);
+						NBT_Debug("failed to find block %i, %i, %i", x_off + dx, y + dy, z_off + dz);
+						assert(nullptr);
 						continue;
 					}
 					
 					BlockInfo bi;
-					rc->getBlockInfo(baddr);
+					chunk->getBlockInfo(baddr, &bi);
 					
-					const char *blockStateName = rc->getBlockStateName(baddr);
-					if(!blockStateName)
-					{
-						NBT_Debug("did not find blockstatename for %i:%i", bi.id, bi.data);
-						blockStateName = "unknown";
-					}
+					//NBT_Debug("blockInfo: %i:%i:%s", bi.id, bi.data, bi.state_name);
 					
-					Resource::ID rid = resourceManager->getModel(blockStateName);
+					Resource::ID rid = resourceManager->getModelVariant(bi);
 					if(rid == Resource::INVALID_ID)
 					{
-						NBT_Debug("failed to get model %s", blockStateName);
+						//NBT_Debug("failed to get model %i:%i:%s", bi.id, bi.data, bi.state_name);
 						continue;
 					}
 					
-					if(blkid != BLOCK_AIR && blkid != BLOCK_BARRIER)
-						NBT_Debug("block:%i:%i %s", blkid, sid, blockStateName);
+					//if(bi.id != BLOCK_AIR && bi.id != BLOCK_BARRIER)
+					//	NBT_Debug("block:%i:%i %s", bi.id, bi.data, bi.state_name);
 					
-					ResourceModel *rmod = resourceManager->getModelResource(rid);
-					MCModel::Model *model = rmod->model();
-					if(!model)
+					ResourceModelVariant *var = resourceManager->getModelVariantResource(rid);
+					uint32_t vertex_count = var->getVertexCount();
+					CustomVertex *verticies = var->getVertexData();
+					
+					for(uint32_t i = 0; i < vertex_count; i++)
 					{
-						//NBT_Debug("model in resource is null?");
-						//resourceManager->putModel(rmod->id());
-						continue;
+						CustomVertex &v = verticies[i], &cv = dptr[i];
+						float xoff = cdata->x() + dx, yoff = y + dy, zoff = cdata->z() + dz;
+						
+						cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
+						//cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
+						cv.txcoord = { v.txcoord.f1 , 1-v.txcoord.f2 };
+						// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
+						//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
+						cv.tx_page = v.tx_page;
+						cv.color = v.color;
 					}
 					
-					auto &modvariants = model->getVariants();
-					if(!modvariants.size())
-					{
-						NBT_Debug("no variants or no model for first variant?");
-						//resourceManager->putModel(rmod->id());
-						continue;
-					}
-					
-					// TODO: figure out which element we need based on block type, and data
-					for(auto &element: modvariants[0]->elements_)
-					{
-					
-						//std::string resName;
-						
-						/*for(uint32_t i = 0; i < MCModel::Face::MAX_FACES; i++)
-						{
-							auto &face = element.faces[i];
-							
-							if(face.direction == MCModel::Face::FACE_NONE)
-								continue;
-							
-							resName = face.texname;
-							break;
-						}*/
-						
-						// FIXME: create a cache of these things.
-						//BlockData *block = BlockData::Create(block_data[idx], 0);
-						//if(!block)
-						//{
-						//	NBT_Debug("failed to create block data");
-						//	resourceManager->putModel(rmod->id());
-						//	continue;
-						//}
-
-						//if(resName.length())
-						/*{
-							Resource::ID res_id = resourceManager->getBitmap(resName);
-							if(res_id != Resource::INVALID_ID)
-							{
-								//NBT_Debug("got a resource: %i", res_id);
-								
-								resourceManager->pinResource(res_id); // keep it around, we're gonna need it.
-			
-								Atlas::Item item;
-								if(resourceManager->getAtlasItem(res_id, &item))
-								{
-									Atlas *atlas = resourceManager->getAtlas();
-									
-									tx_page = item.sheet + 1;
-									//NBT_Debug("tx_page: %f", tx_page);
-									tx_xfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
-									tx_yfact = (float)atlas->gridSize() / (float)atlas->sheetSize();
-									tx_x = item.x * tx_xfact;
-									tx_y = item.y * tx_yfact;
-								//	NBT_Debug("%i ix:%f, iy:%f, xf:%f, yf:%f x:%f y:%f", block_data[idx], item.x, item.y, tx_xfact, tx_yfact, tx_x, tx_y);
-								}
-							}
-							else
-							{
-								NBT_Debug("failed to load resource :( %s", resName.c_str());
-							}
-						}*/
-						
-						//NBT_Debug("Entering toVerticies");
-						//uint8_t temp = cull_mask[y+dy][dz][dx];
-						//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, cull_mask[y+dy][dz][dx]);
-						//uint32_t num_idx = block->toVerticies(dptr, xPos + dx, zPos + dz, y + dy, tx_xfact, tx_yfact, tx_x, tx_y, tx_page, 0x00);
-						//NBT_Debug("Exiting toVerticies");
-						//NBT_Debug("%s nidx: %i", BlockName(block_data[idx], 0), num_idx);
-						
-						for(int i = 0; i < element->vertex_count; i++)
-						{
-							auto &face = element->faces[i % 6];
-							
-							CUSTOM_VERTEX &v = element->vertices[i], &cv = dptr[i];
-							float xoff = xPos + dx, yoff = y + dy, zoff = zPos + dz;
-							
-							cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
-							//cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };
-							cv.txcoord = { v.txcoord.f1 , 1-v.txcoord.f2 };
-							// { 0.25 + 0.25 * v.txcoord.f1,  0.25 + 0.25 * v.txcoord.f2 }; 
-							//NBT_Debug("tex: %f, %f", cv.txcoord.f1, cv.txcoord.f2);
-							cv.tx_page = face.tex_page;
-							cv.color = v.color;
-						}
-						
-						dptr += element->vertex_count;
-						total_size += element->vertex_count;
-					}
-					
-					//delete block;
-					
+					dptr += vertex_count;
+					total_size += vertex_count;
 				}
 			}
 		}
 		
 #ifdef VIEWER_USE_MORE_VBOS
 		if(total_size > 0)
-			if(!cdata->fillSlice(section_y, data, total_size))
+			if(!cdata->fillSlice(y, data, total_size))
 				NBT_Warn("failed to fill slice %i???", y);
 #endif
 		

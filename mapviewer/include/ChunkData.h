@@ -7,8 +7,8 @@
 #include <allegro5/allegro_primitives.h>
 
 class ResourceManager;
-class CUSTOM_VERTEX;
-class RendererChunk;
+class CustomVertex;
+class Chunk;
 
 class Chunk;
 
@@ -21,14 +21,14 @@ class ChunkData
 #else
 		static const int32_t MAX_SLICES = 1;
 #endif		
-		static ChunkData *Create(RendererChunk *rc, ResourceManager *rm);
+		static ChunkData *Create(Chunk *rc, ResourceManager *rm);
 		
 		void draw(ALLEGRO_TRANSFORM *transform);
 		
 		int32_t x() const { return x_; }
 		int32_t z() const { return z_; }
 		
-		bool fillSlice(int slice, CUSTOM_VERTEX *data, uint32_t size);
+		bool fillSlice(int slice, CustomVertex *data, uint32_t size);
 		
 	protected:
 		ChunkData(int32_t x, int32_t z);
