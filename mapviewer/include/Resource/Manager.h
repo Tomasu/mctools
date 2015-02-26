@@ -21,6 +21,14 @@ class BlockInfo;
 class BlockAddress;
 class Minecraft;
 
+namespace Model {
+	struct Variant;
+}
+
+#include "Model/Face.h"
+#include "Model/Element.h"
+#include "CustomVertex.h"
+
 class ResourceManager
 {
 	public:
@@ -111,6 +119,10 @@ class ResourceManager
 		
 		Resource *findResource(Resource::ID id);
 		bool putResource(Resource::ID id);
+		
+		int32_t measureVariant(Model::Variant *v);
+		CustomVertex mapCustomVertex(const Model::Element *e, const VF3 &pt, const VF2 &uv, float tx_page);
+		Model::Element::UV_MAP mapFaceUV(const Model::Element *e, Model::Face::FaceDirection fdir, float &tx_page);
 };
 
 class MCVersion

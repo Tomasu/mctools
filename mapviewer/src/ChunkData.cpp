@@ -130,6 +130,11 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 	for(uint32_t i = 0; i < chunk->sectionCount(); i++)
 	{
 		ChunkSection *section = chunk->getSection(i);
+		if(!section)
+			continue;
+		
+		NBT_Debug("new section[%i]: %p", i, section);
+		
 		int32_t y = section->y() * 16;
 		//int32_t y = section_y * 16;
 		
@@ -152,6 +157,8 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 						assert(nullptr);
 						continue;
 					}
+					
+					//NBT_Debug("block %i,%i,%i: %s", x_off+dx, y+dy, z_off+dz, baddr.toString().c_str());
 					
 					BlockInfo bi;
 					chunk->getBlockInfo(baddr, &bi);

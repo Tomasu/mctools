@@ -595,117 +595,183 @@ Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
 		if(!model || !model->model())
 			return Resource::INVALID_ID;
 
-		uint32_t vertex_count = 0;
-		CustomVertex *vertex_data = nullptr, *vertex_data_ptr = nullptr;
-		
 		// FIXME: actually grab correct variant, rather than the first.
 		auto model_variant = model->model()->getVariants().at(variant_id);
 		
-		for(auto element: model_variant->elements_)
-		{
-			vertex_count += element->vertex_count;
-		}
+		CustomVertex *vertices = nullptr;
+		uint32_t vertex_count = measureVariant(model_variant), vidx = 0;
 		
-		vertex_data_ptr = vertex_data = new CustomVertex[vertex_count];
+		vertices = new CustomVertex[vertex_count];
 		
 		for(auto element: model_variant->elements_)
 		{
-
-			Model::Element::POINT_MAP pmap_ = Model::Element::POINT_MAP(from, to);
+			Model::Element::POINT_MAP pmap_ = element->pmap();
 	
-			NBT_Debug("got %i faces, need %i vertices", face_count, vertex_count);
-			
-			if(element.faces[Model::Face::FACE_UP].direction == Model::Face::FACE_UP)
+			if(element->faces[Model::Face::FACE_UP].direction == Model::Face::FACE_UP)
 			{
-				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_UP].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_UP, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p2());
-				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p1());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to3(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from4(), uv.p2(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from3(), uv.p1(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
-				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p2());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to3(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to4(), uv.p4(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from4(), uv.p2(), tx_page);
 			}
 			
-			if(element.faces[Model::Face::FACE_SOUTH].direction == Model::Face::FACE_SOUTH)
+			if(element->faces[Model::Face::FACE_SOUTH].direction == Model::Face::FACE_SOUTH)
 			{
-				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_SOUTH].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_SOUTH, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p2());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to2(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to4(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p2(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p2());
-				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p2(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to4(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to3(), uv.p4(), tx_page);
 			}
 			
-			if(element.faces[Model::Face::FACE_WEST].direction == Model::Face::FACE_WEST)
+			if(element->faces[Model::Face::FACE_WEST].direction == Model::Face::FACE_WEST)
 			{
-				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_WEST].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_WEST, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
-				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p2());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to4(), uv.p4(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to2(), uv.p2(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.to4(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from4(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to4(), uv.p4(), tx_page);
 			}
 			
-			if(element.faces[Model::Face::FACE_NORTH].direction == Model::Face::FACE_NORTH)
+			if(element->faces[Model::Face::FACE_NORTH].direction == Model::Face::FACE_NORTH)
 			{
-				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_NORTH].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_NORTH, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p2());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from1(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from3(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p2(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p2());
-				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.from4(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p2(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from3(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from4(), uv.p4(), tx_page);
 			}
 			
-			if(element.faces[Model::Face::FACE_EAST].direction == Model::Face::FACE_EAST)
+			if(element->faces[Model::Face::FACE_EAST].direction == Model::Face::FACE_EAST)
 			{
-				Model::Element::UV_MAP uv = UV_MAP(element.faces[Model::Face::FACE_EAST].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_EAST, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p2());
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from1(), uv.p2(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from3(), uv.p4(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.to3(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.from3(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to3(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from3(), uv.p4(), tx_page);
 			}
 			
-			if(element.faces[Model::Face::FACE_DOWN].direction == Model::Face::FACE_DOWN)
+			if(element->faces[Model::Face::FACE_DOWN].direction == Model::Face::FACE_DOWN)
 			{
-				Model::Element::UV_MAP uv = Model::Element::UV_MAP(element.faces[Model::Face::FACE_DOWN].uv);
+				float tx_page = 0.0;
+				Model::Element::UV_MAP uv = mapFaceUV(element, Model::Face::FACE_DOWN, tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.from1(), uv.p3());
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p4());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from1(), uv.p3(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p4(), tx_page);
 				
-				vertices[vidx++] = CustomVertex(pmap_.to1(), uv.p1());
-				vertices[vidx++] = CustomVertex(pmap_.from2(), uv.p4());
-				vertices[vidx++] = CustomVertex(pmap_.to2(), uv.p2());
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to1(), uv.p1(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.from2(), uv.p4(), tx_page);
+				vertices[vidx++] = mapCustomVertex(element, pmap_.to2(), uv.p2(), tx_page);
 			}
-	
-			memcpy(vertex_data_ptr, element->vertices, sizeof(*(element->vertices)) * element->vertex_count);
-			vertex_data_ptr += element->vertex_count;
-			
-			
 		}
 		
-		variant = new ResourceModelVariant(fpath, vertex_data, vertex_count);
+		variant = new ResourceModelVariant(fpath, vertices, vertex_count);
 	}
 	
 	resources_.emplace(variant->id(), variant);
 	nameToIDMap_.emplace(fpath, variant->id());
 	
 	return variant->id();
+}
+
+int32_t ResourceManager::measureVariant(Model::Variant* v)
+{
+	int32_t vertex_count = 0;
+	
+	for(auto element: v->elements_)
+	{
+		if(element->faces[Model::Face::FACE_UP].direction == Model::Face::FACE_UP)
+			vertex_count += 6;
+		
+		if(element->faces[Model::Face::FACE_SOUTH].direction == Model::Face::FACE_SOUTH)
+			vertex_count += 6;
+		
+		if(element->faces[Model::Face::FACE_WEST].direction == Model::Face::FACE_WEST)
+			vertex_count += 6;
+		
+		if(element->faces[Model::Face::FACE_NORTH].direction == Model::Face::FACE_NORTH)
+			vertex_count += 6;
+		
+		if(element->faces[Model::Face::FACE_EAST].direction == Model::Face::FACE_EAST)
+			vertex_count += 6;
+		
+		if(element->faces[Model::Face::FACE_DOWN].direction == Model::Face::FACE_DOWN)
+			vertex_count += 6;
+	}
+	
+	return vertex_count;
+}
+
+CustomVertex ResourceManager::mapCustomVertex(const Model::Element *e, const VF3 &pt, const VF2 &uv, float tx_page)
+{
+	// TODO: properly map color here when needed.
+	//  for tinting things like grass and leaves in different biomes.
+	return CustomVertex(pt.f1, pt.f2, pt.f3, uv.f1, uv.f2, Color(), tx_page);
+}
+
+Model::Element::UV_MAP ResourceManager::mapFaceUV(const Model::Element *e, Model::Face::FaceDirection fdir, float &tx_page)
+{
+	const Model::Face &face = e->faces[fdir];
+	auto uv_map = Model::Element::UV_MAP(face.uv);
+	auto &uv = uv_map.uv;
+	
+	Atlas *atlas = getAtlas();
+	
+	Resource::ID tex_res = getBitmap(face.texname);
+	if(tex_res != Resource::INVALID_ID)
+	{
+		Atlas::Item item;
+		if(getAtlasItem(tex_res, &item))
+		{
+			float xfact = atlas->xfact();
+			float yfact = atlas->yfact();
+			
+			uv.f1 = uv.f1 * xfact + item.x * xfact;
+			uv.f2 = uv.f2 * yfact + item.y * yfact;
+			
+			uv.f3 = uv.f3 * xfact + item.x * xfact;
+			uv.f4 = uv.f4 * yfact + item.y * yfact;
+			
+			tx_page = item.sheet + 1;
+		}
+	}
+	
+	if(uv.f1 == 0.0 && uv.f2 == 0.0 && uv.f3 == 0.0 && uv.f4 == 0.0)
+	{
+		uv.f1 = 0.0;
+		uv.f2 = 0.0;
+		uv.f3 = 1.0 * atlas->xfact();
+		uv.f4 = 1.0 * atlas->yfact();
+	}
+	
+	return uv_map;
 }
 
 bool ResourceManager::putModelVariant(Resource::ID id)

@@ -30,6 +30,6 @@ void main()
 	else
 		gl_FragColor = vec4(1.0,0.5,1.0,0.5);
 
-	gl_FragColor = vec4(varying_texcoord.xy, 0.0, 1.0);
+	//gl_FragColor = vec4(varying_texcoord.xy, 0.0, 1.0);
 	//gl_FragColor = varying_color;
 }
