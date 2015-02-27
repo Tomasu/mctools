@@ -556,6 +556,9 @@ Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
 	// FIXME: actually grab correct variant, rather than the first.
 	uint32_t variant_id = 0;
 	
+	if(!info.state_name)
+		return Resource::INVALID_ID;
+	
 	std::string path = modelVariantPath(info.state_name, variant_id);
 	std::string fpath = resPath(path);
 	
