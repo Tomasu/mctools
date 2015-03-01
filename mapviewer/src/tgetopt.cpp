@@ -14,13 +14,13 @@ TGOParser::TGOParser(const std::vector<TGOOptionBase *> &optList) : optionList(o
 			opt->setShortOpt(so);
 			shortOptMap[so] = opt;
 		}
-		
+
 		if(longOptMap.count(opt->name()))
 		{
 			std::ostringstream sstr; sstr << "duplicate option name " << opt->name();
 			throw new std::runtime_error(sstr.str().c_str());
 		}
-		
+
 		longOptMap[opt->name()] = opt;
 	}
 }
@@ -29,15 +29,15 @@ TGOParser::TGOParser(const std::vector<TGOOptionBase *> &optList) : optionList(o
 char TGOParser::findShortOpt(TGOOptionBase *opt)
 {
 	std::string optName = opt->name();
-	
+
 	for(size_t i = 0; i < optName.size(); i++)
 	{
 		char so = optName[i];
-		
+
 		if(!shortOptMap.count(so))
 			return so;
 	}
-	
+
 	return 0;
 }
 
@@ -65,22 +65,22 @@ bool TGOParser::validate(const int &argc, const char **argv)
 					}
 					else
 					{
-						char *eq = (char *)index(argv[i], '=');
+						char *eq = (char *)strchr(argv[i], '=');
 						if(eq)
 						{
 							int name_len = eq - argv[i] - 2;
 							int value_len = len - name_len;
 							std::string optName(argv[i]+2, name_len);
 							std::string optValue(eq+1, value_len);
-							
+
 							printf("opt: '%s'='%s'\n", optName.c_str(), optValue.c_str());
-							
+
 							if(!longOptMap.count(optName))
 							{
 								printf("unknown option %s.\n", optName.c_str());
 								return false;
 							}
-							
+
 							TGOOptionBase *opt = longOptMap[optName];
 							if(opt->valueRequired())
 							{
@@ -89,7 +89,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 									printf("option %s requires a value.\n", optName.c_str());
 									return false;
 								}
-								
+
 								if(opt->validate(optValue))
 									opt->setOptionValue(optValue);
 								else
@@ -102,7 +102,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 							{
 								opt->setOptionValue("1");
 							}
-								
+
 						}
 						else
 						{
@@ -116,11 +116,11 @@ bool TGOParser::validate(const int &argc, const char **argv)
 										printf("option %s requires a value.\n", argv[i]);
 										return false;
 									}
-									
+
 									const char *nextArg = argv[i+1];
 									size_t nextArgLen = strlen(nextArg);
 									const char *nextArgValue = 0;
-									
+
 									if(nextArgLen)
 									{
 										if(nextArg[0] == '-')
@@ -133,7 +133,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 													printf("option %s requires a value.\n", argv[i]);
 													return false;
 												}
-												
+
 												nextArgValue = argv[i+2];
 												i += 2;
 											}
@@ -160,7 +160,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 										printf("option %s requires a value.\n", argv[i]);
 										return false;
 									}
-									
+
 									if(opt->validate(nextArgValue))
 										opt->setOptionValue(nextArgValue);
 									else
@@ -196,7 +196,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 								printf("unknown option %c\n", argv[i][j]);
 								return false;
 							}
-								
+
 							if(shortOptMap[argv[i][j]]->valueRequired())
 							{
 								if(j <= len)
@@ -204,7 +204,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 									printf("option %c requires a value.\n", argv[i][j]);
 									return false;
 								}
-								
+
 								if(shortOptMap[argv[i][j]]->validate(argv[i+1]))
 								{
 									shortOptMap[argv[i][j]]->setOptionValue(argv[i+1]);
@@ -221,7 +221,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 							{
 								shortOptMap[argv[i][j]]->setOptionValue("1");
 							}
-							
+
 						}
 					}
 				}
@@ -230,7 +230,7 @@ bool TGOParser::validate(const int &argc, const char **argv)
 		else
 			extra_parameters.push_back(argv[i]);
 	}
-	
+
 	return true;
 }
 
@@ -238,7 +238,6 @@ TGOOptionBase *TGOParser::get(const std::string &optName)
 {
 	if(optName.size() == 1)
 		return shortOptMap[optName[0]];
-	
+
 	return longOptMap[optName];
 }
-

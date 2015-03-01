@@ -20,8 +20,8 @@ set(VIEWER_HEADERS
 	include/al_ext.h
 )
 
-set(VIEWER_SOURCE 
-	src/tgetopt.cpp 
+set(VIEWER_SOURCE
+	src/tgetopt.cpp
 	src/main.cpp
 	src/Renderer.cpp
 	src/ChunkData.cpp
@@ -47,13 +47,13 @@ if(PKG_CONFIG_FOUND)
 	pkg_check_modules(ALLEGRO_PRIMITIVES REQUIRED allegro_primitives-debug-5)
 	pkg_check_modules(ALLEGRO_FONT REQUIRED allegro_font-debug-5)
 	pkg_check_modules(ALLEGRO_PHYSFS REQUIRED allegro_physfs-debug-5)
-	
+
 	if(ALLEGRO_FOUND AND ALLEGRO_PRIMITIVES_FOUND AND
 		ALLEGRO_IMAGE_FOUND AND ALLEGRO_FONT_FOUND AND ALLEGRO_PHYSFS_FOUND)
 
 		option(VIEWER_USE_MORE_VBOS "Use more than one VBO per chunk" OFF)
 		option(VIEWER_PROFILE "Enable Profiling" OFF)
-		
+
 		if(VIEWER_PROFILE)
 			add_definitions(-pg)
 			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
@@ -62,26 +62,34 @@ if(PKG_CONFIG_FOUND)
 		message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable renderer.")
 		add_definitions(${ALLEGRO_CFLAGS})
 		#message(STATUS "cflags ${ALLEGRO_CFLAGS} libs ${ALLEGRO_LIBRARIES} ${ALLEGRO_MAIN_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES}")
-		
+
 		find_package(LibNBT REQUIRED)
 		find_package(LibIOAccess REQUIRED)
 		find_package(LibMCMap REQUIRED)
-		
+
 		copy_to_build(shaders/default.vtx)
 		copy_to_build(shaders/default.pxl)
-		
+
 		message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 		message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
-		
+
 		if(VIEWER_USE_MORE_VBOS)
 			add_definitions(-DVIEWER_USE_MORE_VBOS)
 		endif()
-		
-		include_directories(${PROJECT_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/vendor/rapidjson/include ${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS})
+
+		include_directories(${PROJECT_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/vendor/rapidjson/include 
+${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS} ${PHYSFS_INCLUDE_DIR})
 		add_executable(viewer ${VIEWER_SOURCE} ${VIEWER_HEADERS})
-		
+
 		# FIXME: ioaccess is somehow being linked in even if we omit it from this list.
-		set(LIBS ${ALLEGRO_LIBRARIES} ${LIBIOACCESS_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} GL ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
+		if (WIN32)
+			set(OPENGL_LIB opengl32)
+		else()
+			set(OPENGL_LIB GL)
+		endif()
+		set(LIBS ${ALLEGRO_LIBRARIES} ${LIBIOACCESS_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} 
+${OPENGL_LIB} 
+${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
 		message(STATUS "libs: ${LIBS}")
 		message(STATUS "libs2: allegro:${ALLEGRO_LIBRARIES} libmcmap:${LIBMCMAP_LIBRARIES} libnbt:${LIBNBT_LIBRARIES} libioaccess:${LIBIOACCESS_LIBRARIES} GL:GL allegro-prim:${ALLEGRO_PRIMITIVES_LIBRARIES} allegro-image:${ALLEGRO_IMAGE_LIBRARIES} allegro-font:${ALLEGRO_FONT_LIBRARIES} allegro-physfs:${ALLEGRO_PHYSFS_LIBRARIES} physfs:${PHYSFS_LIBRARY}")
 		target_link_libraries(viewer ${LIBS})
@@ -93,11 +101,10 @@ if(PKG_CONFIG_FOUND)
 		#		"${CMAKE_CURRENT_BINARY_DIR}/assets"
 		#	)
 		endif()
-		
+
 	else()
 		message(STATUS "Allegro library not found, disabling renderer")
 	endif()
 else()
 	message(STATUS "pkg-config not found, disabling renderer")
 endif()
-
