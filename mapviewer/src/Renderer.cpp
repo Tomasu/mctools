@@ -48,6 +48,10 @@ void Renderer::uninit()
 		al_use_shader(nullptr);
 		al_destroy_shader(prg_);
 	}
+	
+	if(resManager_)
+		delete resManager_;
+	
 
 	if(dpy_)
 		al_destroy_display(dpy_);
@@ -59,6 +63,8 @@ void Renderer::uninit()
 	dpy_ = nullptr;
 	queue_ = nullptr;
 	prg_ = nullptr;
+
+	resManager_ = nullptr;
 
 	// TODO: delete loaded chunks?
 }

@@ -10,5 +10,5 @@ ResourceModelVariant::ResourceModelVariant(const std::string& path, CustomVertex
 
 ResourceModelVariant::~ResourceModelVariant()
 {
-	delete m_vertexes;
+	delete[] m_vertexes;
 }

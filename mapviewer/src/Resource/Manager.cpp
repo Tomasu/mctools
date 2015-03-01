@@ -695,6 +695,7 @@ Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
 			}
 		}
 		
+		NBT_Debug("new model, %i vertices, vidx: %i", vertex_count, vidx);
 		variant = new ResourceModelVariant(fpath, vertices, vertex_count);
 	}
 	

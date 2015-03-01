@@ -14,7 +14,7 @@ AtlasBitmap::AtlasBitmap(uint32_t size) : size_(size), data_size_((size*size) / 
 
 AtlasBitmap::~AtlasBitmap()
 {
-	delete data_;
+	delete[] data_;
 }
 
 inline uint32_t AtlasBitmap::bitN(uint32_t x, uint32_t y)

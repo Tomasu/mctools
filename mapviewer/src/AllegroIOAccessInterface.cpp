@@ -73,6 +73,8 @@ namespace IOAccess
 
 		si->mtime.sec = al_get_fs_entry_mtime(ent);
 		si->mtime.nsec = 0;
+		
+		al_destroy_fs_entry(ent);
 
 		return true;
 	}

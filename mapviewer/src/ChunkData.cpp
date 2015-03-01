@@ -56,7 +56,7 @@ ChunkData::~ChunkData()
 
 bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 {
-	//NBT_Debug("slice_idx:%i", slice_idx);
+	NBT_Debug("slice_idx:%i", slice_idx);
 	assert(slice_idx >= 0 && slice_idx < MAX_SLICES);
 	
 	auto &slice = slice_[slice_idx];
@@ -201,7 +201,7 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 		
 #ifdef VIEWER_USE_MORE_VBOS
 		if(total_size > 0)
-			if(!cdata->fillSlice(y, data, total_size))
+			if(!cdata->fillSlice(section->y(), data, total_size))
 				NBT_Warn("failed to fill slice %i???", y);
 #endif
 		

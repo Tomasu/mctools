@@ -15,7 +15,7 @@ class Chunk;
 class ChunkData
 {
 	public:
-		static const uint32_t MAX_VERTS = 2359296; // half of the max amount a chunk can possibly fill
+		static const uint32_t MAX_VERTS = 256 * 16 * 16 * 50; // half of the max amount a chunk can possibly fill
 #ifdef VIEWER_USE_MORE_VBOS
 		static const int32_t MAX_SLICES = 16;
 #else
