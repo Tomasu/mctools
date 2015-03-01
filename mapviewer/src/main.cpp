@@ -37,8 +37,10 @@ int main(int argc, const char **argv)
 		return -1;
 	}
 	
+	IOAccess::Initialize();
+	
 	al_init();
-	IOAccess::Initialize(new IOAccess::AllegroInterface());
+	
 	
 	bool listVersions = optParser->getValue<TGOBoolOption>("list-versions");
 	bool listLevels = optParser->getValue<TGOBoolOption>("list-levels");
@@ -87,6 +89,7 @@ int main(int argc, const char **argv)
 	else
 		minecraft->autoSelectVersion();
 	
+	IOAccess::SetDefaultInterface(new IOAccess::AllegroInterface());
 	NBT_Debug("create Level");
 	level = new Level();
 	if(!level->load(minecraft->saves().at(0)))
@@ -111,12 +114,15 @@ int main(int argc, const char **argv)
 	renderer->setLevel(level);
 	
 	renderer->run();
-	NBT_Debug("eor");
 
 	delete renderer;
 	delete level;
 	delete minecraft;
 	delete optParser;
+	
+	//sleep(60);
+	
+	NBT_Debug("eor");
 	
 	return 0;
 	

@@ -291,7 +291,8 @@ void Renderer::run()
 
 	bool redraw = false;
 	bool doUpdateLookPos = false;
-
+	bool cleared = false;
+	
 	while(1)
 	{
 		ALLEGRO_EVENT ev;
@@ -388,6 +389,21 @@ void Renderer::run()
 			{
 				break;
 			}
+			else if(ev.keyboard.keycode == ALLEGRO_KEY_C)
+			{
+				NBT_Debug("CLEAR CHUNKS");
+				glBindVertexArray(vao_);
+				for(auto ch: chunkData_)
+				{
+					delete ch.second;
+				}
+				glBindVertexArray(0);
+				chunkData_.clear();
+
+				glDeleteBuffers(1, &vao_);
+				
+				cleared = true;
+			}
 			else if (ev.keyboard.keycode == ALLEGRO_KEY_ESCAPE)
 			{
 				grab_mouse_ = !grab_mouse_;
@@ -444,7 +460,7 @@ void Renderer::run()
 			}
 			else
 			{
-				//if(changeTranslation)
+				if(!cleared)
 				{
 					//NBT_Debug("pos: %fx%fx%f", camera_pos_.getX(), camera_pos_.getZ(), camera_pos_.getY());
 					autoLoadChunks(camera_pos_.getX() / 16.0, camera_pos_.getZ() / 16.0);
@@ -646,7 +662,7 @@ void Renderer::updateLookPos()
 		// getChunk will cause regions and chunks to be loaded, but they should already be loaded by now...
 
 		auto it = chunkData_.find(getChunkKey(cx, cz));
-		if(it->second)
+		if(it != chunkData_.end() && it->second)
 		{
 			//RendererChunk *rc = it->second;
 			// DO STUFF
