@@ -56,7 +56,7 @@ ChunkData::~ChunkData()
 
 bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 {
-	NBT_Debug("slice_idx:%i", slice_idx);
+	//NBT_Debug("slice_idx:%i", slice_idx);
 	assert(slice_idx >= 0 && slice_idx < MAX_SLICES);
 	
 	auto &slice = slice_[slice_idx];
@@ -68,7 +68,7 @@ bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 	if(!slice.vbo)
 		NBT_Debug("failed to create vertex buffer :(");
 	
-	NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice_idx, ((double)slice.vtx_count*sizeof(CustomVertex))/1024.0/1024.0);
+	//NBT_Debug("new chunk slice[%i]: size:%.02fMB", slice_idx, ((double)slice.vtx_count*sizeof(CustomVertex))/1024.0/1024.0);
 	
 	return true;
 }
@@ -133,7 +133,7 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 		if(!section)
 			continue;
 		
-		NBT_Debug("new section[%i]: %p", i, section);
+		//NBT_Debug("new section[%i]: %p", i, section);
 		
 		int32_t y = section->y() * 16;
 		//int32_t y = section_y * 16;

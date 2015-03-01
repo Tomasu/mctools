@@ -47,7 +47,7 @@ namespace IOAccess
 		si->device = -1;
 
 		uint32_t mode = al_get_fs_entry_mode(ent);
-		NBT_Debug("mode: %i", mode);
+		//NBT_Debug("mode: %i", mode);
 		si->mode = 0;
 		si->mode |= (mode & ALLEGRO_FILEMODE_READ) ? IOAccess::ModeOwnerRead : 0;
 		si->mode |= (mode & ALLEGRO_FILEMODE_WRITE) ? IOAccess::ModeOwnerWrite : 0;

@@ -15,6 +15,8 @@ class Chunk;
 class ChunkData
 {
 	public:
+		~ChunkData();
+		
 		static const uint32_t MAX_VERTS = 256 * 16 * 16 * 50; // half of the max amount a chunk can possibly fill
 #ifdef VIEWER_USE_MORE_VBOS
 		static const int32_t MAX_SLICES = 16;
@@ -32,7 +34,6 @@ class ChunkData
 		
 	protected:
 		ChunkData(int32_t x, int32_t z);
-		~ChunkData();
 		
 	private:
 		ALLEGRO_VERTEX_DECL *vtxdecl_;

@@ -52,6 +52,12 @@ void Renderer::uninit()
 	if(resManager_)
 		delete resManager_;
 	
+	for(auto chunk: chunkData_)
+	{
+		delete chunk.second;
+	}
+	
+	chunkData_.clear();
 
 	if(dpy_)
 		al_destroy_display(dpy_);
@@ -76,6 +82,7 @@ void Renderer::setLevel(Level *level)
 
 	for(auto &map: level->maps())
 	{
+		NBT_Debug("setLevel: dim=%i", map->dimension());
 		if(map->dimension() == 0)
 		{
 			dim0_ = map;
@@ -89,10 +96,10 @@ void Renderer::setLevel(Level *level)
 		dim0_ = level->maps()[0];
 	}
 
-	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", dim0_->spawnX(), dim0_->spawnZ(), dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4, (dim0_->spawnX()>>4) >> 5, (dim0_->spawnZ()>>4) >> 5);
+	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", level->spawnX(), level->spawnZ(), level->spawnX() >> 4, level->spawnZ() >> 4, (level->spawnX()>>4) >> 5, (level->spawnZ()>>4) >> 5);
 
-	camera_pos_ = Vector3D(dim0_->spawnX(), 84, dim0_->spawnZ());
-	autoLoadChunks(dim0_->spawnX() >> 4, dim0_->spawnZ() >> 4);
+	camera_pos_ = Vector3D(level->spawnX(), 84, level->spawnZ());
+	autoLoadChunks(level->spawnX() >> 4, level->spawnZ() >> 4);
 }
 
 Level *Renderer::getLevel()
@@ -706,6 +713,13 @@ void Renderer::processChunk(int x, int z)
 		return;
    }
 
+   if(chunkDataExists(x, z))
+	{
+		NBT_Debug("WE ALREADY HAVE THIS CHUNK, WTF?", x, z);
+		assert(0);
+		return;
+	}
+	
 	chunkData_.emplace(getChunkKey(x, z), cdata);
 }
 

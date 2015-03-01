@@ -87,6 +87,7 @@ int main(int argc, const char **argv)
 	else
 		minecraft->autoSelectVersion();
 	
+	NBT_Debug("create Level");
 	level = new Level();
 	if(!level->load(minecraft->saves().at(0)))
 	{
@@ -120,11 +121,13 @@ int main(int argc, const char **argv)
 	return 0;
 	
 escape:
+	NBT_Debug("ESCAPE!");
 	delete renderer;
 	delete optParser;
 	return 0;
 	
 err:
+	NBT_Error("ERROR!");
 	delete level;
 	delete renderer;
 	delete optParser;

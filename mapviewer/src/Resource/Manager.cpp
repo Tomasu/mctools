@@ -114,7 +114,7 @@ bool ResourceManager::init(Minecraft *mc, const char *argv0)
 		goto init_err;
 	}
 	
-	
+	al_destroy_path(data_path);
 	
 	al_set_physfs_file_interface();
 	
@@ -162,6 +162,9 @@ ResourceManager::~ResourceManager()
 	{
 		delete res.second;
 	}
+	
+	if(PHYSFS_isInit())
+		PHYSFS_deinit();
 }
 
 std::string ResourceManager::bmpPath(const std::string &name)
@@ -327,7 +330,7 @@ Resource::ID ResourceManager::getLoadedBitmap(const std::string &name, bool full
 {
 	std::string fpath = fullpath ? name : resPath(bmpPath(name));
 	
-	NBT_Debug("begin");
+	//NBT_Debug("begin");
 	
 	Resource::ID rID = findID(fpath);
 	if(rID != Resource::INVALID_ID)
@@ -363,7 +366,7 @@ Resource::ID ResourceManager::getLoadedBitmap(const std::string &name, bool full
 		resToUnload_.erase(it);
 	}
 	
-	NBT_Debug("end");
+	//NBT_Debug("end");
 	return rID;
 }
 
@@ -373,7 +376,7 @@ Resource::ID ResourceManager::getBitmap(const std::string &name)
 	std::string fpath = resPath(path);
 	Resource *bmp = nullptr;
 	
-	NBT_Debug("begin");
+	//NBT_Debug("begin");
 	
 	Resource::ID rID = getLoadedBitmap(fpath, true);
 	if(rID == Resource::INVALID_ID)
@@ -388,7 +391,7 @@ Resource::ID ResourceManager::getBitmap(const std::string &name)
 		nameToIDMap_.emplace(fpath, bmp->id());
 	}
 	
-	NBT_Debug("end");
+	//NBT_Debug("end");
 	
 	return rID;
 }
