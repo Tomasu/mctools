@@ -41,13 +41,38 @@ set(VIEWER_SOURCE
 
 if(PKG_CONFIG_FOUND)
 	message(STATUS "checking for allegro")
-	pkg_check_modules(ALLEGRO REQUIRED allegro-debug-5)
-	pkg_check_modules(ALLEGRO_MAIN REQUIRED allegro_main-debug-5)
-	pkg_check_modules(ALLEGRO_IMAGE REQUIRED allegro_image-debug-5)
-	pkg_check_modules(ALLEGRO_PRIMITIVES REQUIRED allegro_primitives-debug-5)
-	pkg_check_modules(ALLEGRO_FONT REQUIRED allegro_font-debug-5)
-	pkg_check_modules(ALLEGRO_PHYSFS REQUIRED allegro_physfs-debug-5)
-
+	
+	if (WIN32)
+		set(OPENGL_LIB opengl32)
+	else()
+		set(OPENGL_LIB GL)
+	endif()
+		
+	find_package(LibNBT REQUIRED)
+	find_package(LibIOAccess REQUIRED)
+	find_package(LibMCMap REQUIRED)
+		
+	if(SHARED)
+		pkg_check_modules(ALLEGRO REQUIRED allegro-debug-5)
+		pkg_check_modules(ALLEGRO_MAIN REQUIRED allegro_main-debug-5)
+		pkg_check_modules(ALLEGRO_IMAGE REQUIRED allegro_image-debug-5)
+		pkg_check_modules(ALLEGRO_PRIMITIVES REQUIRED allegro_primitives-debug-5)
+		pkg_check_modules(ALLEGRO_FONT REQUIRED allegro_font-debug-5)
+		pkg_check_modules(ALLEGRO_PHYSFS REQUIRED allegro_physfs-debug-5)
+		
+		set(LIBS ${LIBIOACCESS_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} ${OPENGL_LIB} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
+		
+	else()
+		pkg_check_modules(ALLEGRO REQUIRED allegro-debug-static-5)
+		pkg_check_modules(ALLEGRO_MAIN REQUIRED allegro_main-debug-static-5)
+		pkg_check_modules(ALLEGRO_IMAGE REQUIRED allegro_image-debug-static-5)
+		pkg_check_modules(ALLEGRO_PRIMITIVES REQUIRED allegro_primitives-debug-static-5)
+		pkg_check_modules(ALLEGRO_FONT REQUIRED allegro_font-debug-static-5)
+		pkg_check_modules(ALLEGRO_PHYSFS REQUIRED allegro_physfs-debug-static-5)
+		
+		set(LIBS -Wl,-Bstatic ioaccess;mcmap;nbt;allegro-debug-static;allegro_image-debug-static;allegro_primitives-debug-static;allegro_physfs-debug-static;allegro_font-debug-static;allegro_ttf-debug-static;physfs;png;jpeg;z  -Wl,-Bdynamic m;pthread;SM;ICE;X11;Xext;Xcursor;Xi;Xinerama;Xrandr;GLU;GL)
+	endif()
+	
 	if(ALLEGRO_FOUND AND ALLEGRO_PRIMITIVES_FOUND AND
 		ALLEGRO_IMAGE_FOUND AND ALLEGRO_FONT_FOUND AND ALLEGRO_PHYSFS_FOUND)
 
@@ -62,10 +87,6 @@ if(PKG_CONFIG_FOUND)
 		message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable renderer.")
 		add_definitions(${ALLEGRO_CFLAGS})
 		#message(STATUS "cflags ${ALLEGRO_CFLAGS} libs ${ALLEGRO_LIBRARIES} ${ALLEGRO_MAIN_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES}")
-
-		find_package(LibNBT REQUIRED)
-		find_package(LibIOAccess REQUIRED)
-		find_package(LibMCMap REQUIRED)
 
 		copy_to_build(shaders/default.vtx)
 		copy_to_build(shaders/default.pxl)
@@ -82,16 +103,7 @@ ${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS} ${PH
 		add_executable(viewer ${VIEWER_SOURCE} ${VIEWER_HEADERS})
 
 		# FIXME: ioaccess is somehow being linked in even if we omit it from this list.
-		if (WIN32)
-			set(OPENGL_LIB opengl32)
-		else()
-			set(OPENGL_LIB GL)
-		endif()
-		set(LIBS ${ALLEGRO_LIBRARIES} ${LIBIOACCESS_LIBRARIES} ${LIBMCMAP_LIBRARIES} ${LIBNBT_LIBRARIES} 
-${OPENGL_LIB} 
-${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES} ${PHYSFS_LIBRARY})
 		message(STATUS "libs: ${LIBS}")
-		message(STATUS "libs2: allegro:${ALLEGRO_LIBRARIES} libmcmap:${LIBMCMAP_LIBRARIES} libnbt:${LIBNBT_LIBRARIES} libioaccess:${LIBIOACCESS_LIBRARIES} GL:GL allegro-prim:${ALLEGRO_PRIMITIVES_LIBRARIES} allegro-image:${ALLEGRO_IMAGE_LIBRARIES} allegro-font:${ALLEGRO_FONT_LIBRARIES} allegro-physfs:${ALLEGRO_PHYSFS_LIBRARIES} physfs:${PHYSFS_LIBRARY}")
 		target_link_libraries(viewer ${LIBS})
 
 		if(EXISTS "${CMAKE_SOURCE_DIR}/assets")
