@@ -233,9 +233,12 @@ namespace IOAccess
 				break;
 
 			entname = al_get_fs_entry_name(dent);
-                        if (!fullpath)
-                            entname = entname.substr(entname.find_last_of("\\/")+1);
-
+			
+			if(!fullpath)
+			{
+				int slash_pos = entname.find_last_of("/\\")+1;
+				entname = entname.substr(slash_pos);
+			}
 
 			ent->assign(entname);
 
