@@ -26,19 +26,10 @@
 
 #include <cstdio>
 
-ChunkData::ChunkData(int32_t x, int32_t z) : x_(x), z_(z)
+ChunkData::ChunkData(Chunk *c) : chunk_(c)
 {
-	ALLEGRO_VERTEX_ELEMENT elements[] = {
-		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CustomVertex, pos) },
-		{ ALLEGRO_PRIM_TEX_COORD, ALLEGRO_PRIM_FLOAT_2, offsetof(CustomVertex, txcoord) },
-		{ ALLEGRO_PRIM_USER_ATTR, ALLEGRO_PRIM_FLOAT_1, offsetof(CustomVertex, tx_page) },
-		{ ALLEGRO_PRIM_COLOR_ATTR, ALLEGRO_PRIM_FLOAT_4, offsetof(CustomVertex, color) },
-		{ 0, 0, 0 }
-	};
-	
-	vtxdecl_ = al_create_vertex_decl(elements, sizeof(CustomVertex));
-	if(!vtxdecl_)
-		NBT_Debug("failed to create vertex decl");
+	x_ = chunk_->x();
+	z_ = chunk_->z();
 	
 	memset(slice_, 0, sizeof(slice_));
 }
@@ -50,8 +41,6 @@ ChunkData::~ChunkData()
 		auto &slice = slice_[i];
 		al_destroy_vertex_buffer(slice.vbo);
 	}
-	
-	al_destroy_vertex_decl(vtxdecl_);
 }
 
 bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
@@ -64,7 +53,7 @@ bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 	
 	slice.vtx_count = vtx_count;
 	
-	slice.vbo = al_create_vertex_buffer(vtxdecl_, data, slice.vtx_count, 0);
+	slice.vbo = al_create_vertex_buffer(rm_->vtx_decl(), data, slice.vtx_count, 0);
 	if(!slice.vbo)
 		NBT_Debug("failed to create vertex buffer :(");
 	
@@ -74,7 +63,7 @@ bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 }
 
 
-void ChunkData::draw(ALLEGRO_TRANSFORM *trans)
+void ChunkData::draw(ALLEGRO_TRANSFORM *trans, const BlockInfo &info)
 {
 	for(int32_t i = 0; i < MAX_SLICES; i++)
 	{
@@ -92,6 +81,16 @@ void ChunkData::draw(ALLEGRO_TRANSFORM *trans)
 		//al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count-1, ALLEGRO_PRIM_TRIANGLE_LIST);
 		al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count, ALLEGRO_PRIM_TRIANGLE_LIST);
 		//al_draw_vertex_buffer(vbo_, tex, 0, size_, ALLEGRO_PRIM_TRIANGLE_LIST);
+		
+		// draw block highlight
+		
+		if(x_ == info.addr.x / 16 && z_ == info.addr.z / 16)
+		{
+			al_copy_transform(&local_transform, trans);
+			al_translate_transform_3d(&local_transform, info.addr.lx, info.addr.ly, info.addr.lz);
+			al_use_transform(&local_transform);
+			al_draw_vertex_buffer(slice.vbo, 0, 0, 3, ALLEGRO_PRIM_TRIANGLE_LIST);
+		}
 	}
 }
 
@@ -123,7 +122,8 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 	int32_t x_off = chunk->x() * 16;
 	int32_t z_off = chunk->z() * 16;
 	
-	ChunkData *cdata = new ChunkData(chunk->x(), chunk->z());
+	ChunkData *cdata = new ChunkData(chunk);
+	cdata->rm_ = resourceManager;
 	
 	CustomVertex *dptr = data; // reset dptr, reuse data memory.
 	

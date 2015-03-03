@@ -28,7 +28,7 @@ void main()
 //	else if(varying_tx_page  == 4.0)
 //		gl_FragColor = color3;
 	else
-		gl_FragColor = vec4(1.0,0.5,1.0,0.5);
+		gl_FragColor = varying_color;
 
 	//gl_FragColor = vec4(varying_texcoord.xy, 0.0, 1.0);
 	//gl_FragColor = varying_color;

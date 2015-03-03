@@ -25,6 +25,9 @@ namespace Model {
 	struct Variant;
 }
 
+struct ALLEGRO_VERTEX_BUFFER;
+struct ALLEGRO_VERTEX_DECL;
+
 #include "Model/Face.h"
 #include "Model/Element.h"
 #include "CustomVertex.h"
@@ -86,6 +89,9 @@ class ResourceManager
 		
 		const char *getBlockStateName(const BlockAddress &baddr);
 		
+		ALLEGRO_VERTEX_BUFFER *sel_vbo() { return sel_vbo_; }
+		ALLEGRO_VERTEX_DECL *vtx_decl() { return vtxdecl_; }
+		
 	private:
 		std::string baseResourcePath_;
 		std::string bitmapSubPath_;
@@ -107,7 +113,8 @@ class ResourceManager
 		
 		Renderer *renderer_;
 		
-		
+		ALLEGRO_VERTEX_DECL *vtxdecl_;
+		ALLEGRO_VERTEX_BUFFER *sel_vbo_;
 		
 		std::string resPath(const std::string &name);
 		std::string bmpPath(const std::string &name);

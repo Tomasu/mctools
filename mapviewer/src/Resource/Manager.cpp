@@ -48,6 +48,21 @@ bool ResourceManager::init(Minecraft *mc, const char *argv0)
 	
 	std::string mc_path, jar_path;
 	
+	ALLEGRO_VERTEX_ELEMENT elements[] = {
+		{ ALLEGRO_PRIM_POSITION, ALLEGRO_PRIM_FLOAT_3, offsetof(CustomVertex, pos) },
+		{ ALLEGRO_PRIM_TEX_COORD, ALLEGRO_PRIM_FLOAT_2, offsetof(CustomVertex, txcoord) },
+		{ ALLEGRO_PRIM_USER_ATTR, ALLEGRO_PRIM_FLOAT_1, offsetof(CustomVertex, tx_page) },
+		{ ALLEGRO_PRIM_COLOR_ATTR, ALLEGRO_PRIM_FLOAT_4, offsetof(CustomVertex, color) },
+		{ 0, 0, 0 }
+	};
+	
+	CustomVertex sel_data[] = {
+		CustomVertex(0.0, 0.0, 0.0, 0.0, 0.0, Color(1.0, 0.0, 0.0, 1.0), 1),
+		CustomVertex(10.0, 0.0, 0.0, 0.03125, 0.0, Color(1.0, 0.0, 0.0, 1.0), 1),
+		CustomVertex(0.0, 10.0, 10.0, 0.03125, 0.03125, Color(1.0, 0.0, 0.0, 1.0), 1),
+	};
+			
+			
 	if (!PHYSFS_init(argv0))
 	{
 		NBT_Debug("failed to initialize Physfs");
@@ -127,6 +142,14 @@ bool ResourceManager::init(Minecraft *mc, const char *argv0)
 		NBT_Debug("failed to create missing block bitmap???");
 		goto init_err;
 	}
+	
+	vtxdecl_ = al_create_vertex_decl(elements, sizeof(CustomVertex));
+	if(!vtxdecl_)
+		NBT_Debug("failed to create vertex decl");
+	
+	sel_vbo_ = al_create_vertex_buffer(vtxdecl_, sel_data, sizeof(sel_data)/sizeof(CustomVertex), 0);
+	if(!sel_vbo_)
+		NBT_Debug("failed to create sel vbo");
 	
 	NBT_Debug("end");
 	return true;

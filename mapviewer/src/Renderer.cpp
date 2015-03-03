@@ -20,6 +20,7 @@
 
 #include "Level.h"
 #include "Map.h"
+#include <BlockAddress.h>
 #include "Vector.h"
 
 #include "NBT_Debug.h"
@@ -435,7 +436,11 @@ void Renderer::run()
 				dx = 0.0;
 
 			float ry = dx / al_get_display_width(dpy_), rx = dy / al_get_display_height(dpy_);
-
+			ry_look = ry;
+			
+			mouse_x = ev.mouse.x;
+			mouse_y = ev.mouse.y;
+			
 			rx_look += rx;
 			al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
 //			al_rotate_transform_3d(&camera_transform_, 1.0, 0.0, 0.0, rx);
@@ -444,7 +449,7 @@ void Renderer::run()
 
 			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2.0, al_get_display_height(dpy_)/2.0);
 
-			doUpdateLookPos = true;
+			updateLookPos();
 		}
 
       if(redraw && al_is_event_queue_empty(queue_))
@@ -553,7 +558,6 @@ void Renderer::draw()
 	setupProjection(&trans);
 	al_identity_transform(&trans);
 
-
 	al_use_transform(&trans);
 
 	getWorldPos(camera_pos_);
@@ -585,7 +589,7 @@ void Renderer::draw()
 		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
 		al_use_transform(&ctrans);
 
-		cd->draw(&ctrans);
+		cd->draw(&ctrans, look_block_info_);
 	}
 
 	glBindVertexArray(0);
@@ -603,21 +607,6 @@ void Renderer::drawHud()
 	if(!setShader(SHADER_ALLEGRO))
 		NBT_Debug("failed to set allegro shader");
 
-	//al_use_shader(nullptr);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-
-	//int dw = al_get_display_width(dpy_);
-   //int dh = al_get_display_height(dpy_);
-
-	/*ALLEGRO_TRANSFORM trans;
-	al_identity_transform(&trans);
-	al_orthographic_transform(&trans, 0, 0, -1, dw, dh, 1);
-	al_set_projection_transform(dpy_, &trans);
-	al_identity_transform(&trans);
-	al_use_transform(&trans);
-	*/
-
 	if(!resManager_->getAtlas()->getSheet(0)->alBitmap())
 		NBT_Debug("no sheet bitmap????");
 
@@ -633,43 +622,76 @@ void Renderer::drawHud()
 
 	Vector3D world_pos;
 
-
-	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos_.x, camera_pos_.y, camera_pos_.z);
+	const char *block_name = look_block_info_.state_name != nullptr ? look_block_info_.state_name : "unk";
+	
+	int dw = al_get_display_width(dpy_);
+	int dh = al_get_display_height(dpy_);
+	al_draw_filled_rectangle(0, dh-30, dw/2, dh, al_map_rgba(0,0,0,200));
+	
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, al_get_display_height(dpy_)-26, 0, "Block: bi:%i:%i:%s x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x, look_block_address_.y, look_block_address_.z);
+	
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, al_get_display_height(dpy_)-14, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos_.x, camera_pos_.y, camera_pos_.z);
 
 //	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "Mat: x0:%.0f x1:%.0f x2:%.0f x3:%.0f z0:%.0f z1:%.0f z2:%.0f z3:%.0f",
 	//				  world.m[0][0], world.m[1][0], world.m[2][0], world.m[3][0],
 	//				  world.m[2][2], world.m[2][2], world.m[2][2], world.m[3][2]);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f y:%.0f z:%.0f", camera_pos_.getX(), camera_pos_.getY(), camera_pos_.getZ());
+	
 }
 
 void Renderer::updateLookPos()
 {
 	ALLEGRO_TRANSFORM look;
-	al_copy_transform(&look, &camera_transform_);
+	
 
-	for(int i = 0; i < 4; i++)
+	for(int i = 0; i < 8; i++)
 	{
-		al_translate_transform_3d(&look, 0.0, 0.0, 1.0);
+		al_identity_transform(&look);
 
+		al_compose_transform(&look, &camera_transform_);
+		al_translate_transform_3d(&look, 0.0, 0.0, (i));
+		
+		al_rotate_transform_3d(&look, 1.0, 0.0, 0.0, rx_look);
+		
 		Vector3D pos;
 		unProject(&look, pos);
-
-		int x = (int)floor(pos.x+0.5), z = (int)floor(pos.z+0.5);
+		
+		int x = (int)floor(pos.x+0.5), y = (int)floor(pos.y+0.5), z = (int)floor(pos.z+0.5);
 		int cx = x / 16, cz = z / 16;
 		//int bx = x % 16, bz = z % 16;
 
-		// getChunk will cause regions and chunks to be loaded, but they should already be loaded by now...
-
 		auto it = chunkData_.find(getChunkKey(cx, cz));
-		if(it != chunkData_.end() && it->second)
+		if(it == chunkData_.end() || !it->second)
+			continue;
+		
+		Chunk *c = it->second->chunk();
+		
+		BlockAddress ba;
+		if(!c->getBlockAddress(x, y, z, &ba))
 		{
-			//RendererChunk *rc = it->second;
-			// DO STUFF
+			NBT_Debug("failed to get block address: %i,%i,%i", x, y, z);
+			continue;
 		}
+		
+		BlockInfo bi;
+		if(!c->getBlockInfo(ba, &bi))
+		{
+			NBT_Debug("failed to get block info: %i,%i,%i", x, y, z);
+			continue;
+		}
+		
+		if(bi.id == BLOCK_AIR && i < 7)
+			continue;
+		
+		//NBT_Debug("look block: %i:%i:%s %i,%i,%i", bi.id, bi.data, bi.state_name, x, y, z);
+		
+		look_block_address_ = ba;
+		look_block_info_ = bi;
+		look_pos_ = pos;
+		
+		break;
 	}
-
-
 }
 
 void Renderer::unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos)
@@ -934,7 +956,7 @@ void Renderer::unsetShaderSampler(AtlasSheet* sheet)
 
 	if(!al_set_shader_sampler(sstr.str().c_str(), nullptr, sheet->id()))
 	{
-		NBT_Debug("failed to unset sampler %s", sstr.str().c_str());
+		//NBT_Debug("failed to unset sampler %s", sstr.str().c_str());
 	}
 }
 

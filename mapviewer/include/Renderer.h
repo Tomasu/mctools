@@ -11,6 +11,8 @@
 #include "Util.h"
 #include "Vector.h"
 #include "Chunk.h"
+#include "BlockAddress.h"
+#include "BlockInfo.h"
 
 struct ALLEGRO_FONT;
 class ResourceManager;
@@ -74,8 +76,11 @@ class Renderer
 		float rx_look;
 		float ry_look;
 		
+		int mouse_x, mouse_y;
 		Vector3D camera_pos_;
 		Vector3D look_pos_;
+		BlockAddress look_block_address_;
+		BlockInfo look_block_info_;
 		
 		ResourceManager *resManager_;
 		

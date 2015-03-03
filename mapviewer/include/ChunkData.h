@@ -6,6 +6,9 @@
 #include <allegro5/allegro_opengl.h>
 #include <allegro5/allegro_primitives.h>
 
+#include "BlockAddress.h"
+#include "BlockInfo.h"
+
 class ResourceManager;
 class CustomVertex;
 class Chunk;
@@ -25,20 +28,26 @@ class ChunkData
 #endif		
 		static ChunkData *Create(Chunk *rc, ResourceManager *rm);
 		
-		void draw(ALLEGRO_TRANSFORM *transform);
+		void draw(ALLEGRO_TRANSFORM *transform, const BlockInfo &info);
 		
 		int32_t x() const { return x_; }
 		int32_t z() const { return z_; }
 		
 		bool fillSlice(int slice, CustomVertex *data, uint32_t size);
 		
+		Chunk *chunk() { return chunk_; }
+		
 	protected:
-		ChunkData(int32_t x, int32_t z);
+		ChunkData(Chunk *c);
 		
 	private:
-		ALLEGRO_VERTEX_DECL *vtxdecl_;
+		
 		int32_t x_, z_;
-				
+		
+		Chunk *chunk_;
+		
+		ResourceManager *rm_;
+		
 		struct {
 			int32_t y;
 			ALLEGRO_VERTEX_BUFFER *vbo;
