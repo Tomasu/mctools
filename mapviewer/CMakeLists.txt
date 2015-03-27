@@ -3,12 +3,14 @@ project(viewer CXX C)
 include(FindPkgConfig)
 
 find_package(PhysFS REQUIRED)
+find_package(GLM REQUIRED)
 
 set(VIEWER_HEADERS
 	include/tgetopt.h
 	include/Renderer.h
 	include/BlockData.h
 	include/ChunkData.h
+	include/Camera.h
 	include/AllegroIOAccessInterface.h
 	include/Resource/Atlas.h
 	include/Resource/AtlasSheet.h
@@ -24,6 +26,7 @@ set(VIEWER_SOURCE
 	src/tgetopt.cpp
 	src/main.cpp
 	src/Renderer.cpp
+	src/Camera.cpp
 	src/ChunkData.cpp
 	src/BlockData.cpp
 	src/AllegroIOAccessInterface.cpp
@@ -86,6 +89,8 @@ if(PKG_CONFIG_FOUND)
 
 		message(STATUS "Allegro ${ALLEGRO_VERSION} was found, enable renderer.")
 		add_definitions(${ALLEGRO_CFLAGS})
+		include_directories(${GLM_INCLUDE_DIRS})
+		
 		#message(STATUS "cflags ${ALLEGRO_CFLAGS} libs ${ALLEGRO_LIBRARIES} ${ALLEGRO_MAIN_LIBRARIES} ${ALLEGRO_IMAGE_LIBRARIES} ${ALLEGRO_PRIMITIVES_LIBRARIES} ${ALLEGRO_FONT_LIBRARIES} ${ALLEGRO_PHYSFS_LIBRARIES}")
 
 		copy_to_build(shaders/default.vtx)
@@ -98,8 +103,7 @@ if(PKG_CONFIG_FOUND)
 			add_definitions(-DVIEWER_USE_MORE_VBOS)
 		endif()
 
-		include_directories(${PROJECT_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/vendor/rapidjson/include 
-${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS} ${PHYSFS_INCLUDE_DIR})
+		include_directories(${PROJECT_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/vendor/rapidjson/include ${LIBMCMAP_INCLUDE_DIRS} ${LIBNBT_INCLUDE_DIRS} ${LIBIOACCESS_INCLUDE_DIRS} ${PHYSFS_INCLUDE_DIR})
 		add_executable(viewer ${VIEWER_SOURCE} ${VIEWER_HEADERS})
 
 		# FIXME: ioaccess is somehow being linked in even if we omit it from this list.

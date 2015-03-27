@@ -7,12 +7,15 @@
 #include <queue>
 #include <allegro5/allegro.h>
 
+#include "glm/fwd.hpp"
+
 #include "PairHash.h"
 #include "Util.h"
 #include "Vector.h"
 #include "Chunk.h"
 #include "BlockAddress.h"
 #include "BlockInfo.h"
+#include "Camera.h"
 
 struct ALLEGRO_FONT;
 class ResourceManager;
@@ -69,18 +72,17 @@ class Renderer
 		ALLEGRO_BITMAP *bmp_;
 		ALLEGRO_FONT *fnt_;
 		
-		ALLEGRO_TRANSFORM al_proj_transform_;
-		ALLEGRO_TRANSFORM cur3d_transform_;
+		glm::mat4x4 projection_;
 		
-		ALLEGRO_TRANSFORM camera_transform_;
-		float rx_look;
-		float ry_look;
-		
+		Camera camera_;
+	
 		int mouse_x, mouse_y;
-		Vector3D camera_pos_;
-		Vector3D look_pos_;
+		
+		glm::vec3 look_pos_;
 		BlockAddress look_block_address_;
 		BlockInfo look_block_info_;
+		
+		ALLEGRO_TRANSFORM al_proj_transform_;
 		
 		ResourceManager *resManager_;
 		
@@ -94,12 +96,6 @@ class Renderer
 		bool loadShaders(const char *vertex_file_path, const char *fragment_file_path);
 		bool loadAllegroShaders();
 		void setupProjection(ALLEGRO_TRANSFORM *m);
-		
-		void unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos);
-		void getWorldPos(Vector3D &pos);
-		
-		void negateTransform(ALLEGRO_TRANSFORM *m);
-		void transposeTransform(ALLEGRO_TRANSFORM *m);
 		
 		void updateLookPos();
 		void drawSelection();

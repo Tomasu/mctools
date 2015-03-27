@@ -12,6 +12,10 @@
 #include <allegro5/shader.h>
 #include "al_ext.h"
 
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
 #include "Renderer.h"
 #include "ChunkData.h"
 
@@ -27,7 +31,7 @@
 
 Renderer::Renderer() : level_(nullptr), queue_(nullptr), tmr_(nullptr), dpy_(nullptr)
 {
-
+	
 }
 
 Renderer::~Renderer()
@@ -99,7 +103,13 @@ void Renderer::setLevel(Level *level)
 
 	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", level->spawnX(), level->spawnZ(), level->spawnX() >> 4, level->spawnZ() >> 4, (level->spawnX()>>4) >> 5, (level->spawnZ()>>4) >> 5);
 
-	camera_pos_ = Vector3D(level->spawnX(), 84, level->spawnZ());
+	camera_ = Camera(
+		glm::vec3(level->spawnX(), 84, level->spawnZ()), // position
+		glm::vec3(0.0, 1.0, 0.0),                        // up axis
+		0.15,                                            // movement speed
+		0.04                                             // rotation speed
+	);
+	
 	autoLoadChunks(level->spawnX() >> 4, level->spawnZ() >> 4);
 }
 
@@ -127,6 +137,7 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 	ALLEGRO_BITMAP *bmp = nullptr;
 	ALLEGRO_TRANSFORM *def_trans = nullptr;
 	ALLEGRO_FONT *fnt = nullptr;
+	ALLEGRO_TRANSFORM *al_proj = nullptr;
 
 	if(!al_install_keyboard())
 		goto init_failed;
@@ -150,7 +161,7 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 	queue = al_create_event_queue();
 	if(!queue)
 		goto init_failed;
-
+	
 	// do display creation last so a display isn't created and instantly destroyed if any of the
 	// preceeding initializations fail.
 	al_set_new_display_flags(ALLEGRO_OPENGL | ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL_3_0);
@@ -158,7 +169,7 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
    //al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
 
-	dpy = al_create_display(800, 600);
+	dpy = al_create_display(1024, 768);
 
 	if(!dpy)
 	{
@@ -211,20 +222,16 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 	al_register_event_source(queue, al_get_display_event_source(dpy));
 	al_register_event_source(queue, al_get_timer_event_source(tmr));
 
-	def_trans = al_get_projection_transform(dpy);
-	al_copy_transform(&al_proj_transform_, def_trans);
-
-	al_identity_transform(&camera_transform_);
-
-	rx_look = 0.0;
-
 	queue_ = queue;
 	tmr_ = tmr;
 	dpy_ = dpy;
 	bmp_ = bmp;
 	fnt_ = fnt;
 	grab_mouse_ = false;
-
+	
+	al_proj = al_get_projection_transform(dpy_);
+	al_copy_transform(&al_proj_transform_, al_proj);
+	
 	// initial clear display
 	// make things look purdy
 	al_clear_to_color(al_map_rgb(0,0,0));
@@ -257,41 +264,13 @@ void Renderer::run()
 
 	al_hide_mouse_cursor(dpy_);
 
-	al_identity_transform(&camera_transform_);
-
-	float x = -camera_pos_.x, y = -camera_pos_.y, z = -camera_pos_.z;
-	//x = -dim0_->spawnX();
-	//z = -dim0_->spawnZ();
-
-	al_translate_transform_3d(&camera_transform_, x, y, z);
-
-	al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, DEG_TO_RAD(180));
-
-	memset(key_state_, 0, sizeof(key_state_) * sizeof(key_state_[0]));
+	memset(key_state_, 0, sizeof(key_state_));
 
 	al_start_timer(tmr_);
 
 	NBT_Debug("run!");
 
-	//al_use_shader(nullptr);
-
-	/*ALLEGRO_TRANSFORM trans;
-	al_identity_transform(&trans);
-	al_orthographic_transform(&trans, 0, 0, -1, al_get_display_width(dpy_), al_get_display_height(dpy_), 1);
-	al_set_projection_transform(dpy_, &trans);
-	al_identity_transform(&trans);
-	al_use_transform(&trans);
-
-	if(!resManager_->getAtlas()->getSheet(0)->alBitmap())
-		NBT_Debug("no sheet bitmap????");
-	*/
-	//al_draw_bitmap(resManager_->getAtlas()->getSheet(0)->alBitmap(), 0, 0, 0);
-
-	//al_flip_display();
-	//sleep(10);
-
 	bool redraw = false;
-	bool doUpdateLookPos = false;
 	bool cleared = false;
 	
 	while(1)
@@ -302,78 +281,38 @@ void Renderer::run()
       if(ev.type == ALLEGRO_EVENT_TIMER)
 		{
          redraw = true;
-			//cam_.rx = 1.0;
-			float x = 0.0, y = 0.0, z = 0.0;
-			float translate_diff = 0.3;
-			float ry = 0.0;
-			float rotate_diff = 0.04;
-			bool changeTranslation = false;
-			bool changeRotation = false;
 
 			if(key_state_[ALLEGRO_KEY_W])
 			{
-				z += translate_diff;
-				changeTranslation = true;
+				camera_.moveForward();
 			}
 
 			if(key_state_[ALLEGRO_KEY_S])
 			{
-				z -= translate_diff;
-				changeTranslation = true;
+				camera_.moveBack();
 			}
 
 			if(key_state_[ALLEGRO_KEY_A])
 			{
-				x += translate_diff;
-				changeTranslation = true;
+				camera_.moveLeft();
 			}
 
 			if(key_state_[ALLEGRO_KEY_D])
 			{
-				x -= translate_diff;
-				changeTranslation = true;
+				camera_.moveRight();
 			}
 
 			if(key_state_[ALLEGRO_KEY_SPACE])
 			{
-				y -= translate_diff;
-				changeTranslation = true;
+				camera_.moveUp();
 			}
 
 			if(key_state_[ALLEGRO_KEY_LSHIFT])
 			{
-				y += translate_diff;
-				changeTranslation = true;
+				camera_.moveDown();
 			}
-
-			if(key_state_[ALLEGRO_KEY_LEFT])
-			{
-				ry += rotate_diff;
-				changeRotation = true;
-			}
-
-			if(key_state_[ALLEGRO_KEY_RIGHT])
-			{
-				ry -= rotate_diff;
-				changeRotation = true;
-			}
-
-			if(changeTranslation)
-			{
-				//camera_pos_.translate(x, y, z);
-				al_translate_transform_3d(&camera_transform_, x, y, z);
-				doUpdateLookPos = true;
-			}
-
-			if(changeRotation)
-			{
-				al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
-				doUpdateLookPos = true;
-			}
-
-			if(doUpdateLookPos)
-				updateLookPos();
-
+			
+			camera_.update();
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
 		{
@@ -422,34 +361,23 @@ void Renderer::run()
 		else if(ev.type == ALLEGRO_EVENT_MOUSE_AXES && grab_mouse_)
 		{
 			float dx = ev.mouse.dx, dy = ev.mouse.dy;
-
-			if(dy > 0 && dy < 1.5)
+			NBT_Debug("mouse: %.02f, %.02f", dx, dy);
+			
+			if(dy > 0 && dy < 1.0)
 				dy = 0.0;
 
-			if(dy < 0 && dy > -1.5)
+			if(dy < 0 && dy > -1.0)
 				dy = 0.0;
 
-			if(dx > 0 && dx < 1.5)
+			if(dx > 0 && dx < 1.0)
 				dy = 0.0;
 
-			if(dx < 0 && dx > -1.5)
+			if(dx < 0 && dx > -1.0)
 				dx = 0.0;
 
-			float ry = dx / al_get_display_width(dpy_), rx = dy / al_get_display_height(dpy_);
-			ry_look = ry;
-			
-			mouse_x = ev.mouse.x;
-			mouse_y = ev.mouse.y;
-			
-			rx_look += rx;
-			al_rotate_transform_3d(&camera_transform_, 0.0, 1.0, 0.0, ry);
-//			al_rotate_transform_3d(&camera_transform_, 1.0, 0.0, 0.0, rx);
+			camera_.look(dx, dy);
 
-			//cam_.rx += dy / al_get_display_height(dpy_);
-
-			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2.0, al_get_display_height(dpy_)/2.0);
-
-			updateLookPos();
+			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2, al_get_display_height(dpy_)/2);
 		}
 
       if(redraw && al_is_event_queue_empty(queue_))
@@ -468,23 +396,22 @@ void Renderer::run()
 				if(!cleared)
 				{
 					//NBT_Debug("pos: %fx%fx%f", camera_pos_.getX(), camera_pos_.getZ(), camera_pos_.getY());
-					autoLoadChunks(camera_pos_.getX() / 16.0, camera_pos_.getZ() / 16.0);
+					autoLoadChunks(camera_.getPos().x / 16.0, camera_.getPos().z / 16.0);
 				}
 			}
 
 			ALLEGRO_STATE state;
 			al_store_state(&state, ALLEGRO_STATE_ALL);
-			al_set_projection_transform(dpy_, &al_proj_transform_);
-
+			
 			glClear(GL_DEPTH_BUFFER_BIT);
 
          redraw = false;
 			al_clear_to_color(al_map_rgb(255,255,255));
+			
          draw();
 
 			al_restore_state(&state);
-			al_set_projection_transform(dpy_, &al_proj_transform_);
-
+			
 			drawHud();
 
 			al_restore_state(&state);
@@ -526,22 +453,6 @@ void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
 	al_perspective_transform(m, left, top, zNear,
       right, bottom, zFar);
 
-   al_set_projection_transform(dpy_, m);
-}
-
-void Renderer::negateTransform(ALLEGRO_TRANSFORM *m)
-{
-	m->m[0][0] = -m->m[0][0];
-	m->m[0][1] = -m->m[0][1];
-	m->m[0][2] = -m->m[0][2];
-
-	m->m[1][0] = -m->m[1][0];
-	m->m[1][1] = -m->m[1][1];
-	m->m[1][2] = -m->m[1][2];
-
-	m->m[2][0] = -m->m[1][0];
-	m->m[2][1] = -m->m[1][1];
-	m->m[2][2] = -m->m[1][2];
 }
 
 void Renderer::draw()
@@ -549,20 +460,37 @@ void Renderer::draw()
 	//int dw = al_get_display_width(dpy_);
    //int dh = al_get_display_height(dpy_);
 
+	ALLEGRO_TRANSFORM proj_trans;
+	setupProjection(&proj_trans);
+	al_set_projection_transform(dpy_, &proj_trans);
+	  
 	ALLEGRO_TRANSFORM trans;
-	al_identity_transform(&trans);
-
-	al_compose_transform(&trans, &camera_transform_);
-	al_rotate_transform_3d(&trans, 1.0, 0.0, 0.0, rx_look);
-
-	setupProjection(&trans);
-	al_identity_transform(&trans);
-
+	glm::mat4 mat = camera_.getMat();
+	
+	trans.m[0][0] = mat[0][0];
+	trans.m[0][1] = mat[0][1];
+	trans.m[0][2] = mat[0][2];
+	trans.m[0][3] = mat[0][3];
+	
+	trans.m[1][0] = mat[1][0];
+	trans.m[1][1] = mat[1][1];
+	trans.m[1][2] = mat[1][2];
+	trans.m[1][3] = mat[1][3];
+	
+	trans.m[2][0] = mat[2][0];
+	trans.m[2][1] = mat[2][1];
+	trans.m[2][2] = mat[2][2];
+	trans.m[2][3] = mat[2][3];
+	
+	trans.m[3][0] = mat[3][0];
+	trans.m[3][1] = mat[3][1];
+	trans.m[3][2] = mat[3][2];
+	trans.m[3][3] = mat[3][3];
+//	al_identity_transform(&trans);
+	
+	
+	
 	al_use_transform(&trans);
-
-	getWorldPos(camera_pos_);
-
-	al_copy_transform(&cur3d_transform_, al_get_current_transform());
 
 	glEnable(GL_DEPTH_TEST);
 	// Accept fragment if it closer to the camera than the former one
@@ -585,7 +513,7 @@ void Renderer::draw()
 		ChunkData *cd = it.second;
 
 		ALLEGRO_TRANSFORM ctrans;
-		al_identity_transform(&ctrans);
+		al_copy_transform(&ctrans, &trans);
 		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
 		al_use_transform(&ctrans);
 
@@ -610,6 +538,8 @@ void Renderer::drawHud()
 	if(!resManager_->getAtlas()->getSheet(0)->alBitmap())
 		NBT_Debug("no sheet bitmap????");
 
+	al_set_projection_transform(dpy_, &al_proj_transform_);
+	
 	//al_use_shader(nullptr);section_y
 	ALLEGRO_BITMAP *tex = resManager_->getAtlas()->getSheet(0)->alBitmap();
 	//glActiveTexture(GL_TEXTURE0);
@@ -618,21 +548,19 @@ void Renderer::drawHud()
 	al_draw_bitmap(tex, 0, 0, 0);
 
 	float x = 0.0, y = 0.0;
-	al_transform_coordinates(&camera_transform_, &x, &y);
-
-	Vector3D world_pos;
-
+	glm::vec3 camera_pos = camera_.getPos();
+	
 	const char *block_name = look_block_info_.state_name != nullptr ? look_block_info_.state_name : "unk";
 	
 	int dw = al_get_display_width(dpy_);
 	int dh = al_get_display_height(dpy_);
-	al_draw_filled_rectangle(0, dh-30, dw/2, dh, al_map_rgba(0,0,0,200));
+	al_draw_filled_rectangle(0, dh-36, dw/2, dh, al_map_rgba(0,0,0,200));
 	
-	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, al_get_display_height(dpy_)-26, 0, "Block: bi:%i:%i:%s x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x, look_block_address_.y, look_block_address_.z);
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-26, 0, "Block: bi:%i:%i:%s x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x, look_block_address_.y, look_block_address_.z);
 	
-	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, al_get_display_height(dpy_)-14, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos_.x, camera_pos_.y, camera_pos_.z);
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-12, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos.x, camera_pos.y, camera_pos.z);
 
-//	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
+	//	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "Mat: x0:%.0f x1:%.0f x2:%.0f x3:%.0f z0:%.0f z1:%.0f z2:%.0f z3:%.0f",
 	//				  world.m[0][0], world.m[1][0], world.m[2][0], world.m[3][0],
 	//				  world.m[2][2], world.m[2][2], world.m[2][2], world.m[3][2]);
@@ -642,22 +570,13 @@ void Renderer::drawHud()
 
 void Renderer::updateLookPos()
 {
-	ALLEGRO_TRANSFORM look;
+	glm::vec3 cam_pos = camera_.getPos();
 	
-
 	for(int i = 0; i < 8; i++)
 	{
-		al_identity_transform(&look);
+		glm::vec3 look_pos = camera_.getForward(i);
 
-		al_compose_transform(&look, &camera_transform_);
-		al_translate_transform_3d(&look, 0.0, 0.0, (i));
-		
-		al_rotate_transform_3d(&look, 1.0, 0.0, 0.0, rx_look);
-		
-		Vector3D pos;
-		unProject(&look, pos);
-		
-		int x = (int)floor(pos.x+0.5), y = (int)floor(pos.y+0.5), z = (int)floor(pos.z+0.5);
+		int x = (int)floor(look_pos.x+0.5), y = (int)floor(look_pos.y+0.5), z = (int)floor(look_pos.z+0.5);
 		int cx = x / 16, cz = z / 16;
 		//int bx = x % 16, bz = z % 16;
 
@@ -688,38 +607,10 @@ void Renderer::updateLookPos()
 		
 		look_block_address_ = ba;
 		look_block_info_ = bi;
-		look_pos_ = pos;
+		look_pos_ = look_pos;
 		
 		break;
 	}
-}
-
-void Renderer::unProject(ALLEGRO_TRANSFORM *trans, Vector3D &pos)
-{
-	al_unproject_transform_3d(trans, &(pos.x), &(pos.y), &(pos.z));
-}
-
-void Renderer::getWorldPos(Vector3D &pos)
-{
-	unProject(&camera_transform_, pos);
-}
-
-void Renderer::transposeTransform(ALLEGRO_TRANSFORM *t)
-{
-	ALLEGRO_TRANSFORM copy;
-	al_copy_transform(&copy, t);
-
-	t->m[0][0] = copy.m[0][0];
-	t->m[0][1] = copy.m[1][0];
-	t->m[0][2] = copy.m[2][0];
-
-	t->m[1][0] = copy.m[0][1];
-	t->m[1][1] = copy.m[1][1];
-	t->m[1][2] = copy.m[2][1];
-
-	t->m[2][0] = copy.m[0][2];
-	t->m[2][1] = copy.m[1][2];
-	t->m[2][2] = copy.m[2][2];
 }
 
 bool Renderer::chunkDataExists(int32_t x, int32_t z)
@@ -830,7 +721,7 @@ bool Renderer::isChunkVisible(Vector3D origin, Vector3D pos)
 {
 	Vector3D dist = pos - origin;
 
-	if(dist.magnitude() <= 4.0)
+	if(dist.magnitude() <= 3.0)
 		return true;
 
 	return false;
