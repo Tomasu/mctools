@@ -11,7 +11,7 @@ class Camera
 		void setPos(const glm::vec3 &p) { m_position = p; }
 		void setForward(const glm::vec3 &t) { m_forward = t; }
 		void setUp(const glm::vec3 &u) { m_up = u; }
-		void setLeft(const glm::vec3 &l) { m_left = l; }
+		void setRight(const glm::vec3 &l) { m_right = l; }
 		void setMovementSpeed(float ms) { m_movement_speed = ms; }
 		void setRotationSpeed(float rs) { m_rotation_speed = rs; }
 		
@@ -41,7 +41,7 @@ class Camera
 		glm::vec3 m_position;
 		glm::vec3 m_forward;
 		glm::vec3 m_up;
-		glm::vec3 m_left;
+		glm::vec3 m_right;
 		
 		ALLEGRO_TRANSFORM m_trans;
 		float m_movement_speed;

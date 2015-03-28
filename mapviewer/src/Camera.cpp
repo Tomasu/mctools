@@ -10,7 +10,7 @@ Camera::Camera()
 }
 
 Camera::Camera(const glm::vec3& p, const glm::vec3& f, const glm::vec3& u, float mspeed, float rotspeed)
-	: m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_left(glm::normalize(glm::cross(u, f))), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
+	: m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_right(glm::normalize(glm::cross(f, u))), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
 	  m_do_update(true)
 {
 	NBT_Debug("main camera ctor");
@@ -27,11 +27,11 @@ void Camera::look(float xdiff, float ydiff)
 	NBT_Debug("look: %.02f,%.02f, rs:%.02f", xdiff,ydiff, m_rotation_speed);
 	
 	m_forward = glm::normalize(glm::rotate(m_forward, xdiff * m_rotation_speed, m_up));
-	//m_left = glm::cross(m_up, m_forward);
-	m_left = glm::normalize(glm::rotate(m_left, xdiff * m_rotation_speed, m_up));
+	//m_right = glm::cross(m_up, m_forward);
+	m_right = glm::normalize(glm::rotate(m_right, xdiff * m_rotation_speed, m_up));
 	
-	m_forward = glm::normalize(glm::rotate(m_forward, ydiff * m_rotation_speed, m_left));
-	m_up = glm::normalize(glm::rotate(m_up, ydiff * m_rotation_speed, m_left));
+	m_forward = glm::normalize(glm::rotate(m_forward, ydiff * m_rotation_speed, m_right));
+	m_up = glm::normalize(glm::rotate(m_up, ydiff * m_rotation_speed, m_right));
 	
 	m_do_update = true;
 }
@@ -55,15 +55,14 @@ void Camera::moveBack()
 
 void Camera::moveLeft()
 {
-	m_position += m_left * m_movement_speed;	
+	glm::vec3 left = glm::normalize(glm::cross(m_up, m_forward));
+	m_position += left * m_movement_speed;	
 	m_do_update = true;
 }
 
 void Camera::moveRight()
 {
-	glm::vec3 right = glm::normalize(glm::cross(m_forward, m_up));
-	right *= m_movement_speed;
-	m_position += right;
+	m_position += m_right * m_movement_speed;
 	
 	m_do_update = true;
 }
@@ -96,9 +95,9 @@ void Camera::update()
 	//m_mat[3] = glm::vec4(m_position, 1);
 	//m_mat = glm::lookAt(m_position, m_position + m_forward, m_up);
 	
-	m_trans.m[0][0] = m_left[0];
-	m_trans.m[0][1] = m_left[1];
-	m_trans.m[0][2] = m_left[2];
+	m_trans.m[0][0] = m_right[0];
+	m_trans.m[0][1] = m_right[1];
+	m_trans.m[0][2] = m_right[2];
 	m_trans.m[0][3] = 0.0f;
 	
 	m_trans.m[1][0] = m_up[0];
