@@ -1,4 +1,5 @@
 #include <glm/glm.hpp>
+#include "allegro5/transformations.h"
 
 class Camera
 {
@@ -31,7 +32,7 @@ class Camera
 		const glm::vec3 &getTarget() { return m_forward; }
 		const glm::vec3 &getUp() { return m_up; }
 		
-		const glm::mat4x4 &getMat() { return m_mat; }
+		const ALLEGRO_TRANSFORM &getMat() { return m_trans; }
 		
 		glm::vec3 getAdjPos(const glm::vec3 &to) { return m_position + to; }
 		glm::vec3 getForward(float fd);
@@ -42,7 +43,7 @@ class Camera
 		glm::vec3 m_up;
 		glm::vec3 m_left;
 		
-		glm::mat4 m_mat;
+		ALLEGRO_TRANSFORM m_trans;
 		float m_movement_speed;
 		float m_rotation_speed;
 		bool m_do_update;

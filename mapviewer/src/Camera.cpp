@@ -10,10 +10,11 @@ Camera::Camera()
 }
 
 Camera::Camera(const glm::vec3& p, const glm::vec3& f, const glm::vec3& u, float mspeed, float rotspeed)
-	: m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_left(glm::normalize(glm::cross(u, f))), m_mat(1.0f), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
+	: m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_left(glm::normalize(glm::cross(u, f))), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
 	  m_do_update(true)
 {
 	NBT_Debug("main camera ctor");
+	al_identity_transform(&m_trans);
 }
 
 Camera::~Camera()
@@ -93,6 +94,26 @@ void Camera::update()
 	//m_mat[1] = glm::vec4(m_up, 0);
 	//m_mat[2] = glm::vec4(m_forward, 0);
 	//m_mat[3] = glm::vec4(m_position, 1);
-	m_mat = glm::lookAt(m_position, m_position + m_forward, m_up);
+	//m_mat = glm::lookAt(m_position, m_position + m_forward, m_up);
+	
+	m_trans.m[0][0] = m_left[0];
+	m_trans.m[0][1] = m_left[1];
+	m_trans.m[0][2] = m_left[2];
+	m_trans.m[0][3] = 0.0f;
+	
+	m_trans.m[1][0] = m_up[0];
+	m_trans.m[1][1] = m_up[1];
+	m_trans.m[1][2] = m_up[2];
+	m_trans.m[1][3] = 0.0f;
+	
+	m_trans.m[2][0] = m_forward[0];
+	m_trans.m[2][1] = m_forward[1];
+	m_trans.m[2][2] = m_forward[2];
+	m_trans.m[2][3] = 0.0f;
+	
+	m_trans.m[3][0] = m_position[0];
+	m_trans.m[3][1] = m_position[1];
+	m_trans.m[3][2] = m_position[2];
+	m_trans.m[3][3] = 1.0f;
 }
 

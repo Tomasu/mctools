@@ -465,32 +465,7 @@ void Renderer::draw()
 	setupProjection(&proj_trans);
 	al_set_projection_transform(dpy_, &proj_trans);
 	  
-	ALLEGRO_TRANSFORM trans;
-	glm::mat4 mat = camera_.getMat();
-	
-	trans.m[0][0] = mat[0][0];
-	trans.m[0][1] = mat[0][1];
-	trans.m[0][2] = mat[0][2];
-	trans.m[0][3] = mat[0][3];
-	
-	trans.m[1][0] = mat[1][0];
-	trans.m[1][1] = mat[1][1];
-	trans.m[1][2] = mat[1][2];
-	trans.m[1][3] = mat[1][3];
-	
-	trans.m[2][0] = mat[2][0];
-	trans.m[2][1] = mat[2][1];
-	trans.m[2][2] = mat[2][2];
-	trans.m[2][3] = mat[2][3];
-	
-	trans.m[3][0] = mat[3][0];
-	trans.m[3][1] = mat[3][1];
-	trans.m[3][2] = mat[3][2];
-	trans.m[3][3] = mat[3][3];
-//	al_identity_transform(&trans);
-	
-	
-	
+	ALLEGRO_TRANSFORM trans = camera_.getMat();
 	al_use_transform(&trans);
 
 	glEnable(GL_DEPTH_TEST);
