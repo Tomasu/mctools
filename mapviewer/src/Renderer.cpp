@@ -104,10 +104,11 @@ void Renderer::setLevel(Level *level)
 	NBT_Debug("spawn %ix%i chunk %ix%i region %ix%i", level->spawnX(), level->spawnZ(), level->spawnX() >> 4, level->spawnZ() >> 4, (level->spawnX()>>4) >> 5, (level->spawnZ()>>4) >> 5);
 
 	camera_ = Camera(
-		glm::vec3(level->spawnX(), 84, level->spawnZ()), // position
-		glm::vec3(0.0, 1.0, 0.0),                        // up axis
-		0.15,                                            // movement speed
-		0.04                                             // rotation speed
+		glm::vec3(level->spawnX(), 84.0f, level->spawnZ()), // position
+		glm::vec3(0.0f, 0.0f, 1.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f),                        // up axis
+		0.15f,                                            // movement speed
+		0.04f                                             // rotation speed
 	);
 	
 	autoLoadChunks(level->spawnX() >> 4, level->spawnZ() >> 4);
