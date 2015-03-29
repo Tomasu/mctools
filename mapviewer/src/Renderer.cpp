@@ -377,6 +377,7 @@ void Renderer::run()
 				dx = 0.0;
 
 			camera_.look(dx, dy);
+			camera_.update();
 
 			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2, al_get_display_height(dpy_)/2);
 		}
@@ -465,7 +466,8 @@ void Renderer::draw()
 	setupProjection(&proj_trans);
 	al_set_projection_transform(dpy_, &proj_trans);
 	  
-	ALLEGRO_TRANSFORM trans = camera_.getMat();
+	const ALLEGRO_TRANSFORM &trans = camera_.getMat();
+	//al_identity_transform(&trans);
 	al_use_transform(&trans);
 
 	glEnable(GL_DEPTH_TEST);

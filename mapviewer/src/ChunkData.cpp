@@ -84,13 +84,13 @@ void ChunkData::draw(ALLEGRO_TRANSFORM *trans, const BlockInfo &info)
 		
 		// draw block highlight
 		
-		if(x_ == info.addr.x / 16 && z_ == info.addr.z / 16)
+		/*if(x_ == info.addr.x / 16 && z_ == info.addr.z / 16)
 		{
 			al_copy_transform(&local_transform, trans);
 			al_translate_transform_3d(&local_transform, info.addr.lx, info.addr.ly, info.addr.lz);
 			al_use_transform(&local_transform);
 			al_draw_vertex_buffer(rm_->sel_vbo(), 0, 0, 3, ALLEGRO_PRIM_TRIANGLE_LIST);
-		}
+		}*/
 	}
 }
 
