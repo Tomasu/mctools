@@ -491,8 +491,10 @@ void Renderer::draw()
 		ChunkData *cd = it.second;
 
 		ALLEGRO_TRANSFORM ctrans;
-		al_copy_transform(&ctrans, &trans);
+		al_identity_transform(&ctrans);
+		//al_copy_transform(&ctrans, &trans);
 		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
+		al_compose_transform(&ctrans, &trans);
 		al_use_transform(&ctrans);
 
 		cd->draw(&ctrans, look_block_info_);

@@ -89,12 +89,33 @@ void Camera::update()
 
 	m_do_update = false;
 	
+	double x = m_position.x;
+	double y = m_position.y;
+	double z = m_position.z;
+	m_trans.m[0][0] = m_right.x;
+	m_trans.m[1][0] = m_right.y;
+	m_trans.m[2][0] = m_right.z;
+	m_trans.m[3][0] = m_trans.m[0][0] * -x + m_trans.m[1][0] * -y + m_trans.m[2][0] * -z;
+	m_trans.m[0][1] = m_up.x;
+	m_trans.m[1][1] = m_up.y;
+	m_trans.m[2][1] = m_up.z;
+	m_trans.m[3][1] = m_trans.m[0][1] * -x + m_trans.m[1][1] * -y + m_trans.m[2][1] * -z;
+	m_trans.m[0][2] = -m_forward.x;
+	m_trans.m[1][2] = -m_forward.y;
+	m_trans.m[2][2] = -m_forward.z;
+	m_trans.m[3][2] = m_trans.m[0][2] * -x + m_trans.m[1][2] * -y + m_trans.m[2][2] * -z;
+	m_trans.m[0][3] = 0;
+	m_trans.m[1][3] = 0;
+	m_trans.m[2][3] = 0;
+	m_trans.m[3][3] = 1;
+	
 	//m_mat[0] = glm::vec4(m_left, 0);
 	//m_mat[1] = glm::vec4(m_up, 0);
 	//m_mat[2] = glm::vec4(m_forward, 0);
 	//m_mat[3] = glm::vec4(m_position, 1);
 	
-	glm::mat4 mat = glm::transpose(glm::lookAt(m_position, m_position + m_forward, m_up));
+	/*
+	glm::mat4 mat = glm::lookAt(m_position, m_forward, m_up);
 	
 	m_trans.m[0][0] = mat[0][0];
 	m_trans.m[0][1] = mat[0][1];
@@ -115,6 +136,7 @@ void Camera::update()
 	m_trans.m[3][1] = mat[3][1];
 	m_trans.m[3][2] = mat[3][2];
 	m_trans.m[3][3] = mat[3][3];
+	*/
 	
 	/*
 	m_trans.m[0][0] = m_right[0];
