@@ -30,12 +30,12 @@ void Camera::look(float xdiff, float ydiff)
 	
 	glm::vec3 world_up = { 0, 1, 0 };
 	
-	glm::vec3 tf = glm::normalize(glm::rotate(m_forward, xdiff * m_rotation_speed, world_up ));
-	glm::vec3 tu = glm::normalize(glm::rotate(m_up, xdiff * m_rotation_speed, world_up));
-	glm::vec3 tr = glm::normalize(glm::cross(tf, tu));
+	glm::vec3 tf = glm::normalize(glm::rotate(m_forward, -xdiff * m_rotation_speed, world_up ));
+	glm::vec3 tu = glm::normalize(glm::rotate(m_up, -xdiff * m_rotation_speed, world_up));
+	glm::vec3 tr = glm::normalize(glm::cross(world_up, tf));
 	
-	tf = glm::normalize(glm::rotate(tf, ydiff * m_rotation_speed, tr));
-	tu = glm::normalize(glm::rotate(tu, ydiff * m_rotation_speed, tr));
+	tf = glm::normalize(glm::rotate(tf, -ydiff * m_rotation_speed, tr));
+	tu = glm::normalize(glm::rotate(tu, -ydiff * m_rotation_speed, tr));
 	
 	glm::vec3 twf = m_forward;
 	twf.y = 0;
@@ -48,38 +48,39 @@ void Camera::look(float xdiff, float ydiff)
 	m_up = tu;
 	m_world_forward = twf;
 	
-	m_right = glm::normalize(glm::cross(m_world_forward, m_up));
+	m_right = tr;//glm::normalize(glm::cross(m_world_forward, world_up));
 
 	m_do_update = true;
 }
 
 glm::vec3 Camera::getForward(float fd)
 {
-	return m_position + m_forward * fd;
+	return m_position - m_forward * fd;
 }
 
 void Camera::moveForward()
-{
-	m_position += m_world_forward * m_movement_speed;
-	m_do_update = true;
-}
-
-void Camera::moveBack()
 {
 	m_position -= m_world_forward * m_movement_speed;
 	m_do_update = true;
 }
 
+void Camera::moveBack()
+{
+	m_position += m_world_forward * m_movement_speed;
+	m_do_update = true;
+}
+
 void Camera::moveLeft()
 {
-	glm::vec3 left = glm::normalize(glm::cross(m_up, m_world_forward));
+	glm::vec3 left = glm::normalize(glm::cross(m_world_forward, m_up));
 	m_position += left * m_movement_speed;	
 	m_do_update = true;
 }
 
 void Camera::moveRight()
 {
-	m_position += m_right * m_movement_speed;
+	glm::vec3 right = glm::normalize(glm::cross(m_up, m_world_forward));
+	m_position += right * m_movement_speed;
 	m_do_update = true;
 }
 
@@ -108,6 +109,7 @@ void Camera::update()
 	double x = m_position.x;
 	double y = m_position.y;
 	double z = m_position.z;
+	
 	m_trans.m[0][0] = m_right.x;
 	m_trans.m[1][0] = m_right.y;
 	m_trans.m[2][0] = m_right.z;
@@ -116,9 +118,9 @@ void Camera::update()
 	m_trans.m[1][1] = m_up.y;
 	m_trans.m[2][1] = m_up.z;
 	m_trans.m[3][1] = m_trans.m[0][1] * -x + m_trans.m[1][1] * -y + m_trans.m[2][1] * -z;
-	m_trans.m[0][2] = -m_forward.x;
-	m_trans.m[1][2] = -m_forward.y;
-	m_trans.m[2][2] = -m_forward.z;
+	m_trans.m[0][2] = m_forward.x;
+	m_trans.m[1][2] = m_forward.y;
+	m_trans.m[2][2] = m_forward.z;
 	m_trans.m[3][2] = m_trans.m[0][2] * -x + m_trans.m[1][2] * -y + m_trans.m[2][2] * -z;
 	m_trans.m[0][3] = 0;
 	m_trans.m[1][3] = 0;

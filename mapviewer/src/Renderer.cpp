@@ -107,8 +107,8 @@ void Renderer::setLevel(Level *level)
 		glm::vec3(level->spawnX(), 84.0f, level->spawnZ()), // position
 		glm::vec3(0.0f, 0.0f, 1.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f),                        // up axis
-		0.15f,                                            // movement speed
-		0.02f                                             // rotation speed
+		0.10f,                                            // movement speed
+		0.002f                                             // rotation speed
 	);
 	
 	autoLoadChunks(level->spawnX() >> 4, level->spawnZ() >> 4);
@@ -377,7 +377,7 @@ void Renderer::run()
 			if(dx < 0 && dx > -1.0)
 				dx = 0.0;
 
-			camera_.look(-dx, -dy);
+			camera_.look(dx, dy);
 			camera_.update();
 			updateLookPos();
 
@@ -496,7 +496,8 @@ void Renderer::draw()
 		ALLEGRO_TRANSFORM ctrans;
 		al_identity_transform(&ctrans);
 		//al_copy_transform(&ctrans, &trans);
-		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
+		NBT_Debug("draw chunk[%i,%i]: %f, %f", cd->x(), cd->z(), cd->x()*16.0, cd->z()*16.0);
+		al_translate_transform_3d(&ctrans, cd->x()*16.0, 0.0, cd->z()*16.0);
 		al_compose_transform(&ctrans, &trans);
 		al_use_transform(&ctrans);
 
@@ -587,11 +588,11 @@ void Renderer::updateLookPos()
 			continue;
 		}
 		
-		NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i", i, bi.id, bi.data, bi.state_name, x, y, z);
+		//NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i %i", i, bi.id, bi.data, bi.state_name, ba.lx, ba.ly, ba.lz, ba.idx);
 		if(bi.id == BLOCK_AIR && i < max_forward)
 		{
 			//NBT_Debug("block at %i away is air", i);
-			continue;
+			//continue;
 		}
 		
 		
