@@ -57,9 +57,9 @@ bool ResourceManager::init(Minecraft *mc, const char *argv0)
 	};
 	
 	CustomVertex sel_data[] = {
-		CustomVertex(0.0, 0.0, 0.0, 0.0, 0.0, Color(1.0, 0.0, 0.0, 1.0), 1),
-		CustomVertex(10.0, 0.0, 0.0, 0.03125, 0.0, Color(1.0, 0.0, 0.0, 1.0), 1),
-		CustomVertex(0.0, 10.0, 10.0, 0.03125, 0.03125, Color(1.0, 0.0, 0.0, 1.0), 1),
+		CustomVertex(0.0, 0.0, 0.0, 0.0, 0.0, Color(1.0, 0.0, 0.0, 1.0), 0),
+		CustomVertex(10.0, 0.0, 0.0, 0.03125, 0.0, Color(1.0, 0.0, 0.0, 1.0), 0),
+		CustomVertex(0.0, 10.0, 10.0, 0.03125, 0.03125, Color(1.0, 0.0, 0.0, 1.0), 0),
 	};
 			
 			

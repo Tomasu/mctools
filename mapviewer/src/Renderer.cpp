@@ -108,7 +108,7 @@ void Renderer::setLevel(Level *level)
 		glm::vec3(0.0f, 0.0f, 1.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f),                        // up axis
 		0.15f,                                            // movement speed
-		0.04f                                             // rotation speed
+		0.02f                                             // rotation speed
 	);
 	
 	autoLoadChunks(level->spawnX() >> 4, level->spawnZ() >> 4);
@@ -314,6 +314,7 @@ void Renderer::run()
 			}
 			
 			camera_.update();
+			updateLookPos();
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE)
 		{
@@ -376,8 +377,9 @@ void Renderer::run()
 			if(dx < 0 && dx > -1.0)
 				dx = 0.0;
 
-			camera_.look(dx, dy);
+			camera_.look(-dx, -dy);
 			camera_.update();
+			updateLookPos();
 
 			al_set_mouse_xy(dpy_, al_get_display_width(dpy_)/2, al_get_display_height(dpy_)/2);
 		}
@@ -441,7 +443,7 @@ void Renderer::setupProjection(ALLEGRO_TRANSFORM *m)
 //	al_perspective_transform(m, -500, -500, 1,
 //      500, 500, 10000);
 
-	double zNear = 0.5, zFar = 1000.0, fov = 90.0, aspect = dw / dh;
+	double zNear = 0.5, zFar = 1000.0, fov = 90.0, aspect = (double)dw / (double)dh;
 
 	double left, right;
 	double bottom, top;
@@ -463,6 +465,7 @@ void Renderer::draw()
    //int dh = al_get_display_height(dpy_);
 
 	ALLEGRO_TRANSFORM proj_trans;
+	al_identity_transform(&proj_trans);
 	setupProjection(&proj_trans);
 	al_set_projection_transform(dpy_, &proj_trans);
 	  
@@ -552,7 +555,8 @@ void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
 	
-	for(int i = 0; i < 8; i++)
+	const int max_forward = 2;
+	for(int i = 1; i < max_forward; i++)
 	{
 		glm::vec3 look_pos = camera_.getForward(i);
 
@@ -562,7 +566,10 @@ void Renderer::updateLookPos()
 
 		auto it = chunkData_.find(getChunkKey(cx, cz));
 		if(it == chunkData_.end() || !it->second)
+		{
+			NBT_Debug("chunk not found...");
 			continue;
+		}
 		
 		Chunk *c = it->second->chunk();
 		
@@ -580,10 +587,14 @@ void Renderer::updateLookPos()
 			continue;
 		}
 		
-		if(bi.id == BLOCK_AIR && i < 7)
+		NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i", i, bi.id, bi.data, bi.state_name, x, y, z);
+		if(bi.id == BLOCK_AIR && i < max_forward)
+		{
+			//NBT_Debug("block at %i away is air", i);
 			continue;
+		}
 		
-		//NBT_Debug("look block: %i:%i:%s %i,%i,%i", bi.id, bi.data, bi.state_name, x, y, z);
+		
 		
 		look_block_address_ = ba;
 		look_block_info_ = bi;

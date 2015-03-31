@@ -43,6 +43,9 @@ class Camera
 		glm::vec3 m_up;
 		glm::vec3 m_right;
 		
+		glm::vec3 m_world_forward;
+		glm::vec3 m_world_up;
+		
 		ALLEGRO_TRANSFORM m_trans;
 		float m_movement_speed;
 		float m_rotation_speed;

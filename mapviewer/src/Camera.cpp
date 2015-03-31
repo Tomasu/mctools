@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include "glm/glm.hpp"
 #include "glm/gtx/rotate_vector.hpp"
+#include "glm/gtx/vector_angle.hpp"
 
 #include "NBT_Debug.h"
 
@@ -9,9 +10,10 @@ Camera::Camera()
 	NBT_Debug("crap camera ctor");
 }
 
-Camera::Camera(const glm::vec3& p, const glm::vec3& f, const glm::vec3& u, float mspeed, float rotspeed)
-	: m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_right(glm::normalize(glm::cross(f, u))), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
-	  m_do_update(true)
+Camera::Camera(const glm::vec3& p, const glm::vec3& f, const glm::vec3& u, float mspeed, float rotspeed) :
+	m_position(p), m_forward(glm::normalize(f)), m_up(glm::normalize(u)), m_right(glm::normalize(glm::cross(f, u))), 
+	m_world_forward(0.0f, 0.0f, 1.0f), m_world_up(0.0f, 1.0f, 0.0f), m_movement_speed(mspeed), m_rotation_speed(rotspeed), 
+	m_do_update(true)
 {
 	NBT_Debug("main camera ctor");
 	al_identity_transform(&m_trans);
@@ -26,13 +28,28 @@ void Camera::look(float xdiff, float ydiff)
 {
 	NBT_Debug("look: %.02f,%.02f, rs:%.02f", xdiff,ydiff, m_rotation_speed);
 	
-	m_forward = glm::normalize(glm::rotate(m_forward, xdiff * m_rotation_speed, m_up));
-	//m_right = glm::cross(m_up, m_forward);
-	m_right = glm::normalize(glm::rotate(m_right, xdiff * m_rotation_speed, m_up));
+	glm::vec3 world_up = { 0, 1, 0 };
 	
-	m_forward = glm::normalize(glm::rotate(m_forward, ydiff * m_rotation_speed, m_right));
-	m_up = glm::normalize(glm::rotate(m_up, ydiff * m_rotation_speed, m_right));
+	glm::vec3 tf = glm::normalize(glm::rotate(m_forward, xdiff * m_rotation_speed, world_up ));
+	glm::vec3 tu = glm::normalize(glm::rotate(m_up, xdiff * m_rotation_speed, world_up));
+		
+	tf = glm::normalize(glm::rotate(tf, ydiff * m_rotation_speed, m_right));
+	tu = glm::normalize(glm::rotate(tu, ydiff * m_rotation_speed, m_right));
 	
+	glm::vec3 twf = m_forward;
+	twf.y = 0;
+	twf = glm::normalize(twf);
+
+	float angle = glm::degrees(glm::angle(m_up, m_world_forward));
+	NBT_Debug("angle: %.02f", angle);
+	
+	m_forward = tf;
+	m_up = tu;
+	m_world_forward = twf;
+	
+	m_right = glm::normalize(glm::cross(m_world_forward, m_up));
+	
+
 	m_do_update = true;
 }
 
@@ -43,19 +60,19 @@ glm::vec3 Camera::getForward(float fd)
 
 void Camera::moveForward()
 {
-	m_position += m_forward * m_movement_speed;
+	m_position += m_world_forward * m_movement_speed;
 	m_do_update = true;
 }
 
 void Camera::moveBack()
 {
-	m_position -= m_forward * m_movement_speed;
+	m_position -= m_world_forward * m_movement_speed;
 	m_do_update = true;
 }
 
 void Camera::moveLeft()
 {
-	glm::vec3 left = glm::normalize(glm::cross(m_up, m_forward));
+	glm::vec3 left = glm::normalize(glm::cross(m_up, m_world_forward));
 	m_position += left * m_movement_speed;	
 	m_do_update = true;
 }
@@ -63,21 +80,20 @@ void Camera::moveLeft()
 void Camera::moveRight()
 {
 	m_position += m_right * m_movement_speed;
-	
 	m_do_update = true;
 }
 
 void Camera::moveUp()
 {
 	NBT_Debug("up: %.02f,%.02f,%.02f", m_up.x, m_up.y, m_up.z);
-	m_position += m_up * m_movement_speed;
+	m_position += m_world_up * m_movement_speed;
 	m_do_update = true;
 }
 
 void Camera::moveDown()
 {
 	NBT_Debug("up: %.02f,%.02f,%.02f", m_up.x, m_up.y, m_up.z);
-	m_position -= m_up * m_movement_speed;
+	m_position -= m_world_up * m_movement_speed;
 	m_do_update = true;
 }
 
