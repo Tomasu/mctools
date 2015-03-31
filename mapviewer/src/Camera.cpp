@@ -32,9 +32,10 @@ void Camera::look(float xdiff, float ydiff)
 	
 	glm::vec3 tf = glm::normalize(glm::rotate(m_forward, xdiff * m_rotation_speed, world_up ));
 	glm::vec3 tu = glm::normalize(glm::rotate(m_up, xdiff * m_rotation_speed, world_up));
-		
-	tf = glm::normalize(glm::rotate(tf, ydiff * m_rotation_speed, m_right));
-	tu = glm::normalize(glm::rotate(tu, ydiff * m_rotation_speed, m_right));
+	glm::vec3 tr = glm::normalize(glm::cross(tf, tu));
+	
+	tf = glm::normalize(glm::rotate(tf, ydiff * m_rotation_speed, tr));
+	tu = glm::normalize(glm::rotate(tu, ydiff * m_rotation_speed, tr));
 	
 	glm::vec3 twf = m_forward;
 	twf.y = 0;
@@ -48,7 +49,6 @@ void Camera::look(float xdiff, float ydiff)
 	m_world_forward = twf;
 	
 	m_right = glm::normalize(glm::cross(m_world_forward, m_up));
-	
 
 	m_do_update = true;
 }
