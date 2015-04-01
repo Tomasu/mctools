@@ -55,7 +55,11 @@ void Camera::look(float xdiff, float ydiff)
 
 glm::vec3 Camera::getForward(float fd)
 {
-	return m_position - m_forward * fd;
+	glm::vec3 new_forward = glm::normalize(m_forward);
+	//new_forward.z = -new_forward.z;
+	//new_forward = glm::normalize(new_forward);
+	
+	return m_position - new_forward * fd;
 }
 
 void Camera::moveForward()

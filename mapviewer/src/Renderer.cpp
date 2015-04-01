@@ -386,7 +386,7 @@ void Renderer::run()
 
       if(redraw && al_is_event_queue_empty(queue_))
 		{
-			if(!loadChunkQueue.empty())
+			if(!loadChunkQueue.empty() /*&& chunkData_.empty()*/)
 			{
 				NBT_Debug("%i chunks to load", loadChunkQueue.size());
 
@@ -397,7 +397,7 @@ void Renderer::run()
 			}
 			else
 			{
-				if(!cleared)
+				if(!cleared /*&& chunkData_.empty()*/)
 				{
 					//NBT_Debug("pos: %fx%fx%f", camera_pos_.getX(), camera_pos_.getZ(), camera_pos_.getY());
 					autoLoadChunks(camera_.getPos().x / 16.0, camera_.getPos().z / 16.0);
@@ -496,8 +496,8 @@ void Renderer::draw()
 		ALLEGRO_TRANSFORM ctrans;
 		al_identity_transform(&ctrans);
 		//al_copy_transform(&ctrans, &trans);
-		NBT_Debug("draw chunk[%i,%i]: %f, %f", cd->x(), cd->z(), cd->x()*16.0, cd->z()*16.0);
-		al_translate_transform_3d(&ctrans, cd->x()*16.0, 0.0, cd->z()*16.0);
+		//NBT_Debug("draw chunk[%i,%i]: %f, %f", cd->x(), cd->z(), cd->x()*16.0, cd->z()*16.0);
+		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
 		al_compose_transform(&ctrans, &trans);
 		al_use_transform(&ctrans);
 
@@ -542,7 +542,7 @@ void Renderer::drawHud()
 	
 	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-26, 0, "Block: bi:%i:%i:%s x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x, look_block_address_.y, look_block_address_.z);
 	
-	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-12, 0, "Pos: x:%.0f, y:%.0f, z:%.0f", camera_pos.x, camera_pos.y, camera_pos.z);
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-12, 0, "Pos: x:%.02f, y:%.02f, z:%.02f", camera_pos.x, camera_pos.y, camera_pos.z);
 
 	//	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "Mat: x0:%.0f x1:%.0f x2:%.0f x3:%.0f z0:%.0f z1:%.0f z2:%.0f z3:%.0f",
@@ -550,19 +550,22 @@ void Renderer::drawHud()
 	//				  world.m[2][2], world.m[2][2], world.m[2][2], world.m[3][2]);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-12, 0, "Pos: x:%.0f y:%.0f z:%.0f", camera_pos_.getX(), camera_pos_.getY(), camera_pos_.getZ());
 	
+	al_draw_line(dw/2-10, dh/2, dw/2+10, dh/2, al_map_rgb(0,0,0), 1);
+	al_draw_line(dw/2, dh/2-10, dw/2, dh/2+10, al_map_rgb(0,0,0), 1);
 }
 
 void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
 	
-	const int max_forward = 2;
+	const int max_forward = 32;
 	for(int i = 1; i < max_forward; i++)
 	{
-		glm::vec3 look_pos = camera_.getForward(i);
-
-		int x = (int)floor(look_pos.x+0.5), y = (int)floor(look_pos.y+0.5), z = (int)floor(look_pos.z+0.5);
-		int cx = x / 16, cz = z / 16;
+		glm::vec3 look_pos = camera_.getForward((double)i*0.25);
+		//NBT_Debug("forward: %.02f, %.02f, %.02f", look_pos.x, look_pos.y, look_pos.z);
+		
+		float x = look_pos.x, y = look_pos.y, z = look_pos.z;
+		int cx = x / 16.0, cz = z / 16.0;
 		//int bx = x % 16, bz = z % 16;
 
 		auto it = chunkData_.find(getChunkKey(cx, cz));
@@ -589,10 +592,10 @@ void Renderer::updateLookPos()
 		}
 		
 		//NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i %i", i, bi.id, bi.data, bi.state_name, ba.lx, ba.ly, ba.lz, ba.idx);
-		if(bi.id == BLOCK_AIR && i < max_forward)
+		if(bi.id == BLOCK_AIR && i < max_forward-1)
 		{
 			//NBT_Debug("block at %i away is air", i);
-			//continue;
+			continue;
 		}
 		
 		
