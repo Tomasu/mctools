@@ -102,6 +102,7 @@ class Renderer
 		
 		void updateLookPos();
 		
+		bool rayBlockIntersects(const glm::vec3 &orig, const Ray &ray, float &distance); 
 		bool rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm::vec3 &out, float &distance);
 		bool lookCollision(const Ray &ray, BlockInfo &outInfo, float &distance);
 

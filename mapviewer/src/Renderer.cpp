@@ -625,6 +625,52 @@ bool Renderer::getBlockInfo(const glm::vec3& in, BlockInfo& blockInfo)
 }
 
 
+bool Renderer::rayBlockIntersects(const glm::vec3& orig, const Ray& ray, float& distance)
+{
+	glm::vec3 dirfrac;
+	glm::vec3 dir = ray.direction();
+	glm::vec3 org = ray.start();
+	
+	// r.dir is unit direction vector of ray
+	dirfrac.x = 1.0f / dir.x;
+	dirfrac.y = 1.0f / dir.y;
+	dirfrac.z = 1.0f / dir.z;
+	
+	glm::vec3 blockPos = glm::floor(orig);//{ floor(orig.x), floor(orig.y), floor(orig.z) };
+	
+	glm::vec3 lb = { blockPos.x - 0.5, blockPos.y - 0.5, blockPos.z - 0.5 };
+	glm::vec3 rt = { blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z + 0.5 };
+	
+	// lb is the corner of AABB with minimal coordinates - left bottom, rt is maximal corner
+	// r.org is origin of ray
+	float t1 = (lb.x - org.x)*dirfrac.x;
+	float t2 = (rt.x - org.x)*dirfrac.x;
+	float t3 = (lb.y - org.y)*dirfrac.y;
+	float t4 = (rt.y - org.y)*dirfrac.y;
+	float t5 = (lb.z - org.z)*dirfrac.z;
+	float t6 = (rt.z - org.z)*dirfrac.z;
+
+	float tmin = glm::max(glm::max(glm::min(t1, t2), glm::min(t3, t4)), glm::min(t5, t6));
+	float tmax = glm::min(glm::min(glm::max(t1, t2), glm::max(t3, t4)), glm::max(t5, t6));
+
+	// if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
+	if (tmax < 0)
+	{
+		distance = tmax;
+		return false;
+	}
+
+	// if tmin > tmax, ray doesn't intersect AABB
+	if (tmin > tmax)
+	{
+		distance = tmax;
+		return false;
+	}
+
+	distance = tmin;
+	return true;
+}
+
 bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm::vec3 &out, float &distance)
 {
 	glm::vec3 blockPos = glm::floor(orig);//{ floor(orig.x), floor(orig.y), floor(orig.z) };
@@ -710,27 +756,34 @@ bool Renderer::lookCollision(const Ray& in, BlockInfo &outInfo, float &distance)
 		return true;
 	}
 	
-	glm::vec3 colPos = in.start();
+	glm::vec3 blockPos = in.start();
 	float dist = 0.0f;
 	
-	while(rayBlockFaceIntersects(colPos, in, colPos, dist))
+	glm::vec3 blocks[] = {
+		{ blockPos.x,        blockPos.y + 1.0f, blockPos.z        }, // top
+		{ blockPos.x,        blockPos.y - 1.0f, blockPos.z        }, // bottom
+		{ blockPos.x - 1.0f, blockPos.y,        blockPos.z        }, // west
+		{ blockPos.x,        blockPos.y,        blockPos.z + 1.0f }, // north
+		{ blockPos.x + 1.0f, blockPos.y,        blockPos.z        }, // east
+		{ blockPos.x,        blockPos.y,        blockPos.z - 1.0f }  // south
+	};
+	
+	for(auto &block: blocks)
 	{
-		BlockInfo cbi;
-		if(!getBlockInfo(in.start(), cbi))
-			continue; // we dont know what kind of block this is, so assume its invisible.
-						 // might want to change this to solid later?
-		
-		if(BlockData::isSolid(cbi.id))
+		if(rayBlockIntersects(block, in, dist))
 		{
-			outInfo = cbi;
-			distance = dist;
-			return true;
-		}
+			BlockInfo cbi;
+			if(!getBlockInfo(in.start(), cbi))
+				continue; // we dont know what kind of block this is, so assume its invisible.
+							 // might want to change this to solid later?
 		
-		NBT_Debug("distance: %.02f", dist);
-		sleep(1);
-		if(dist >= 8.0)
-			return false;
+			if(BlockData::isSolid(cbi.id))
+			{
+				outInfo = cbi;
+				distance = dist;
+				return true;
+			}
+		}
 	}
 	
 	return false;
