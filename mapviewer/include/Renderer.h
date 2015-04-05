@@ -17,6 +17,7 @@
 #include "BlockInfo.h"
 #include "Camera.h"
 
+class Ray;
 struct ALLEGRO_FONT;
 class ResourceManager;
 class Minecraft;
@@ -25,6 +26,8 @@ class Map;
 class ChunkData;
 class AtlasSheet;
 class ChunkData;
+
+
 
 class Renderer
 {
@@ -98,7 +101,13 @@ class Renderer
 		void setupProjection(ALLEGRO_TRANSFORM *m);
 		
 		void updateLookPos();
+		
+		bool rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm::vec3 &out, float &distance);
+		bool lookCollision(const Ray &ray, BlockInfo &outInfo, float &distance);
+
 		void drawSelection();
+		
+		bool getBlockInfo(const glm::vec3 &block, BlockInfo &blockInfo);
 		
 		std::unordered_map<Chunk::Key, ChunkData *> chunkData_;
 };

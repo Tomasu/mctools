@@ -36,15 +36,26 @@ void Camera::look(float xdiff, float ydiff)
 	
 	tf = glm::normalize(glm::rotate(tf, -ydiff * m_rotation_speed, tr));
 	tu = glm::normalize(glm::rotate(tu, -ydiff * m_rotation_speed, tr));
+
+	float angle = glm::degrees(glm::angle(tu, m_world_forward));
+	NBT_Debug("angle: %.02f", angle);
 	
+	if(angle <= 0.0f)
+	{
+		tf = glm::normalize(glm::rotate(tf, ydiff * m_rotation_speed, tr));
+		tu = glm::normalize(glm::rotate(tu, ydiff * m_rotation_speed, tr));
+	}
+	else if(angle >= 179.0f)
+	{
+		tf = glm::normalize(glm::rotate(tf, angle-179.0f, tr));
+		tu = glm::normalize(glm::rotate(tu, angle-179.0f, tr));
+	}
+	
+	m_forward = tf;
 	glm::vec3 twf = m_forward;
 	twf.y = 0;
 	twf = glm::normalize(twf);
-
-	float angle = glm::degrees(glm::angle(m_up, m_world_forward));
-	NBT_Debug("angle: %.02f", angle);
 	
-	m_forward = tf;
 	m_up = tu;
 	m_world_forward = twf;
 	

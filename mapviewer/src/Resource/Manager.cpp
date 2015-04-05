@@ -580,6 +580,7 @@ ResourceModelVariant* ResourceManager::getModelVariantResource(Resource::ID id)
 Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
 {
 	// FIXME: actually grab correct variant, rather than the first.
+	// FIXME: detecting the variant here may not be the best, it needs access to the map...
 	uint32_t variant_id = 0;
 	
 	if(!info.state_name)
@@ -625,6 +626,7 @@ Resource::ID ResourceManager::getModelVariant(const BlockInfo& info)
 			return Resource::INVALID_ID;
 
 		// FIXME: actually grab correct variant, rather than the first.
+		
 		auto model_variant = model->model()->getVariants().at(variant_id);
 		
 		CustomVertex *vertices = nullptr;

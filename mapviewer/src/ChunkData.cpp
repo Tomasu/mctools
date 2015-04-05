@@ -51,6 +51,7 @@ bool ChunkData::fillSlice(int slice_idx, CustomVertex* data, uint32_t vtx_count)
 	auto &slice = slice_[slice_idx];
 	assert(slice.vbo == nullptr); // if true, we have a duplicate section :o
 	
+	slice.y = slice_idx * 16;
 	slice.vtx_count = vtx_count;
 	
 	slice.vbo = al_create_vertex_buffer(rm_->vtx_decl(), data, slice.vtx_count, 0);
@@ -75,7 +76,7 @@ void ChunkData::draw(ALLEGRO_TRANSFORM *trans, const BlockInfo &info)
 		
 		ALLEGRO_TRANSFORM local_transform;
 		al_copy_transform(&local_transform, trans);
-		al_translate_transform_3d(&local_transform, 0.0, -slice.y, 0.0);
+		al_translate_transform_3d(&local_transform, 0.0, slice.y, 0.0);
 		al_use_transform(&local_transform);
 		
 		//al_draw_vertex_buffer(slice.vbo, 0, 0, slice.vtx_count-1, ALLEGRO_PRIM_TRIANGLE_LIST);
@@ -135,12 +136,13 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 		
 		//NBT_Debug("new section[%i]: %p", i, section);
 		
-		int32_t y = section->y() * 16;
-		//int32_t y = section_y * 16;
-		
+		int32_t section_y = section->y() * 16;
+		int32_t y = section_y;
+
 #ifdef VIEWER_USE_MORE_VBOS
 		dptr = data;
 		total_size = 0;
+		y = 256; // we don't want to offset the vertex y values when in multiple vbo mode...
 #endif
 		
 		for(int dy = 0; dy < 16; dy++)
@@ -151,9 +153,9 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 				{
 					BlockAddress baddr;
 					
-					if(!chunk->getBlockAddress(x_off + dx, y + dy, z_off + dz, &baddr))
+					if(!chunk->getBlockAddress(x_off + dx, section_y + dy, z_off + dz, &baddr))
 					{
-						NBT_Debug("failed to find block %i, %i, %i", x_off + dx, y + dy, z_off + dz);
+						NBT_Debug("failed to find block %i, %i, %i", x_off + dx, section_y + dy, z_off + dz);
 						assert(nullptr);
 						continue;
 					}
@@ -182,7 +184,7 @@ ChunkData *ChunkData::Create(Chunk *chunk, ResourceManager *resourceManager)
 					for(uint32_t i = 0; i < vertex_count; i++)
 					{
 						CustomVertex &v = verticies[i], &cv = dptr[i];
-						float xoff = cdata->x() + dx, yoff = y + dy, zoff = cdata->z() + dz;
+						float xoff = dx, yoff = y + dy, zoff = dz;
 						
 						cv.pos = { v.pos.f1 + xoff, v.pos.f2 + yoff, v.pos.f3 + zoff };
 						//cv.txcoord = { (v.txcoord.f1 * tx_xfact + tx_x), 1-(v.txcoord.f2 * tx_yfact + tx_y) };

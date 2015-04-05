@@ -21,11 +21,18 @@
 
 #include "Resource/Manager.h"
 #include "Resource/AtlasSheet.h"
+#include <Resource/Model.h>
 
 #include "Level.h"
 #include "Map.h"
 #include <BlockAddress.h>
+#include <Model/Model.h>
+#include <Model/Variant.h>
 #include "Vector.h"
+#include <BlockData.h>
+
+#include "Ray.h"
+#include "Plane.h"
 
 #include "NBT_Debug.h"
 
@@ -497,7 +504,7 @@ void Renderer::draw()
 		al_identity_transform(&ctrans);
 		//al_copy_transform(&ctrans, &trans);
 		//NBT_Debug("draw chunk[%i,%i]: %f, %f", cd->x(), cd->z(), cd->x()*16.0, cd->z()*16.0);
-		al_translate_transform_3d(&ctrans, cd->x()*15.0, 0.0, cd->z()*15.0);
+		al_translate_transform_3d(&ctrans, cd->x()*16.0, 0.0, cd->z()*16.0);
 		al_compose_transform(&ctrans, &trans);
 		al_use_transform(&ctrans);
 
@@ -540,9 +547,9 @@ void Renderer::drawHud()
 	int dh = al_get_display_height(dpy_);
 	al_draw_filled_rectangle(0, dh-36, dw/2, dh, al_map_rgba(0,0,0,200));
 	
-	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-26, 0, "Block: bi:%i:%i:%s x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x, look_block_address_.y, look_block_address_.z);
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-26, 0, "Block: bi:%i:%i:%s (%i, %i) x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x / 16, look_block_address_.z / 16, look_block_address_.x, look_block_address_.y, look_block_address_.z);
 	
-	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-12, 0, "Pos: x:%.02f, y:%.02f, z:%.02f", camera_pos.x, camera_pos.y, camera_pos.z);
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-12, 0, "Pos: (%i, %i) x:%.02f, y:%.02f, z:%.02f", (int)(camera_pos.x / 16.0), (int)(camera_pos.z / 16.0), camera_pos.x, camera_pos.y, camera_pos.z);
 
 	//	al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "WP: %.0f %.0f %.0f", world_pos.x, world_pos.y, world_pos.z);
 	//al_draw_textf(fnt_, al_map_rgb(0,0,0), 4, al_get_display_height(dpy_)-24, 0, "Mat: x0:%.0f x1:%.0f x2:%.0f x3:%.0f z0:%.0f z1:%.0f z2:%.0f z3:%.0f",
@@ -557,56 +564,195 @@ void Renderer::drawHud()
 void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
+	Ray ray = Ray(cam_pos, camera_.getTarget(), 8.0f);
 	
-	const int max_forward = 32;
-	for(int i = 1; i < max_forward; i++)
+	BlockInfo colBlockInfo;
+	float distance;
+	
+	if(lookCollision(ray, colBlockInfo, distance))
 	{
-		glm::vec3 look_pos = camera_.getForward((double)i*0.25);
-		//NBT_Debug("forward: %.02f, %.02f, %.02f", look_pos.x, look_pos.y, look_pos.z);
-		
-		float x = look_pos.x, y = look_pos.y, z = look_pos.z;
-		int cx = x / 16.0, cz = z / 16.0;
-		//int bx = x % 16, bz = z % 16;
-
-		auto it = chunkData_.find(getChunkKey(cx, cz));
-		if(it == chunkData_.end() || !it->second)
-		{
-			NBT_Debug("chunk not found...");
-			continue;
-		}
-		
-		Chunk *c = it->second->chunk();
-		
-		BlockAddress ba;
-		if(!c->getBlockAddress(x, y, z, &ba))
-		{
-			NBT_Debug("failed to get block address: %i,%i,%i", x, y, z);
-			continue;
-		}
-		
-		BlockInfo bi;
-		if(!c->getBlockInfo(ba, &bi))
-		{
-			NBT_Debug("failed to get block info: %i,%i,%i", x, y, z);
-			continue;
-		}
-		
-		//NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i %i", i, bi.id, bi.data, bi.state_name, ba.lx, ba.ly, ba.lz, ba.idx);
-		if(bi.id == BLOCK_AIR && i < max_forward-1)
-		{
-			//NBT_Debug("block at %i away is air", i);
-			continue;
-		}
-		
-		
-		
-		look_block_address_ = ba;
-		look_block_info_ = bi;
-		look_pos_ = look_pos;
-		
-		break;
+		look_block_address_ = colBlockInfo.addr;
+		look_block_info_ = colBlockInfo;
+		look_pos_ = cam_pos + camera_.getTarget() * distance;
 	}
 }
+
+/* for this collision stuff we need to walk along the ray in even block coords,
+ * making sure to hit every block the ray passes through.
+ * 
+ * 
+ * steps:
+ * 
+ * if any face of block collides with ray
+ *   if block is solid, return true
+ *   else move to block adjacent to face that collided with ray, go to step 1
+ * 
+ * 
+ * 
+ */
+
+bool Renderer::getBlockInfo(const glm::vec3& in, BlockInfo& blockInfo)
+{
+	float x = in.x, y = in.y, z = in.z;
+	int cx = floor(x / 16.0), cz = floor(z / 16.0);
+	
+	auto it = chunkData_.find(getChunkKey(cx, cz));
+	if(it == chunkData_.end() || !it->second)
+	{
+		NBT_Debug("chunk not found...");
+		return false;
+	}
+	
+	Chunk *c = it->second->chunk();
+		
+	BlockAddress ba;
+	if(!c->getBlockAddress(x, y, z, &ba))
+	{
+		NBT_Debug("failed to get block address: %i,%i,%i", x, y, z);
+		return false;
+	}
+	
+	BlockInfo bi;
+	if(!c->getBlockInfo(ba, &bi))
+	{
+		NBT_Debug("failed to get block info: %i,%i,%i", x, y, z);
+		return false;
+	}
+	
+	blockInfo = bi;
+	
+	return true;
+}
+
+
+bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm::vec3 &out, float &distance)
+{
+	glm::vec3 blockPos = glm::floor(orig);//{ floor(orig.x), floor(orig.y), floor(orig.z) };
+	
+	glm::vec3 btlPoint = { blockPos.x - 0.5, blockPos.y + 0.5, blockPos.z + 0.5 };
+	glm::vec3 btrPoint = { blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z + 0.5 };
+	glm::vec3 bblPoint = { blockPos.x - 0.5, blockPos.y - 0.5, blockPos.z + 0.5 };
+	glm::vec3 bbrPoint = { blockPos.x + 0.5, blockPos.y - 0.5, blockPos.z + 0.5 };
+	glm::vec3 ftlPoint = { blockPos.x - 0.5, blockPos.y + 0.5, blockPos.z - 0.5 };
+	glm::vec3 ftrPoint = { blockPos.x + 0.5, blockPos.y + 0.5, blockPos.z - 0.5 };
+	glm::vec3 fblPoint = { blockPos.x - 0.5, blockPos.y - 0.5, blockPos.z - 0.5 };
+	glm::vec3 fbrPoint = { blockPos.x + 0.5, blockPos.y - 0.5, blockPos.z - 0.5 };
+	
+	float colDistance = 0.0f;
+	
+	// I think these need to be in CCW order
+	Plane topPlane = Plane( ftlPoint, ftrPoint, btrPoint );
+	
+	if(topPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x, blockPos.y + 1.0f, blockPos.z );
+		distance = colDistance;
+		return true;
+	}
+	
+	Plane bottomPlane = Plane( fblPoint, bblPoint, bbrPoint );
+	if(bottomPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x, blockPos.y - 1.0f, blockPos.z );
+		distance = colDistance;
+		return true;
+	}
+	
+	Plane westPlane = Plane( ftlPoint, btlPoint, bblPoint );
+	if(westPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x - 1.0f, blockPos.y, blockPos.z );
+		distance = colDistance;
+		return true;
+	}
+	
+	Plane northPlane = Plane( btlPoint, btrPoint, bbrPoint );
+	if(northPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x, blockPos.y, blockPos.z + 1.0f );
+		distance = colDistance;
+		return true;
+	}
+	
+	Plane eastPlane = Plane( ftrPoint, fbrPoint, bbrPoint );
+	if(eastPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x + 1.0f, blockPos.y, blockPos.z );
+		distance = colDistance;
+		return true;
+	}
+	
+	Plane southPlane = Plane( ftlPoint, fblPoint, fbrPoint );
+	if(southPlane.intersect(ray, colDistance))
+	{
+		out = glm::vec3( blockPos.x, blockPos.y, blockPos.z - 1.0f );
+		distance = colDistance;
+		return true;
+	}
+	
+	out = orig;
+	distance = 0.0;
+	
+	return false;
+}
+
+
+bool Renderer::lookCollision(const Ray& in, BlockInfo &outInfo, float &distance)
+{
+	BlockInfo bi;
+	if(!getBlockInfo(in.start(), bi))
+		return false;
+	
+	//NBT_Debug("look block[%i]: %i:%i:%s %i,%i,%i %i", i, bi.id, bi.data, bi.state_name, ba.lx, ba.ly, ba.lz, ba.idx);
+	if(BlockData::isSolid(bi.id))
+	{
+		// we're solid, so we don't need to check for surrounding blocks
+		return true;
+	}
+	
+	glm::vec3 colPos = in.start();
+	float dist = 0.0f;
+	
+	while(rayBlockFaceIntersects(colPos, in, colPos, dist))
+	{
+		BlockInfo cbi;
+		if(!getBlockInfo(in.start(), cbi))
+			continue; // we dont know what kind of block this is, so assume its invisible.
+						 // might want to change this to solid later?
+		
+		if(BlockData::isSolid(cbi.id))
+		{
+			outInfo = cbi;
+			distance = dist;
+			return true;
+		}
+		
+		NBT_Debug("distance: %.02f", dist);
+		sleep(1);
+		if(dist >= 8.0)
+			return false;
+	}
+	
+	return false;
+}
+
+/*
+	Resource::ID rid = resManager_->getModel(bi.state_name);
+	if(rid == Resource::INVALID_ID)
+		continue;
+	
+	ResourceModel *var = resManager_->getModelResource(rid);
+	Model::Model *model = var->model();
+	Model::Variant *variant = model->getVariants().at(0); // FIXME: actually grab correct variant
+	
+	float block_x = glm::abs(glm::mod(x, 16.0f));
+	float block_y = glm::abs(glm::mod(y, 16.0f));
+	float block_z = glm::abs(glm::mod(z, 16.0f));
+	
+	for(Model::Element *element: variant->elements_)
+	{
+		
+	}*/
 
 bool Renderer::chunkDataExists(int32_t x, int32_t z)
 {
