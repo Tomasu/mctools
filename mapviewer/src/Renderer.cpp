@@ -564,7 +564,7 @@ void Renderer::drawHud()
 void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
-	Ray ray = Ray(cam_pos, camera_.getTarget(), 8.0f);
+	Ray ray = Ray(cam_pos, cam_pos+camera_.getTarget(), 32.0f);
 	
 	BlockInfo colBlockInfo;
 	float distance;
@@ -624,6 +624,54 @@ bool Renderer::getBlockInfo(const glm::vec3& in, BlockInfo& blockInfo)
 	return true;
 }
 
+bool Renderer::traceRayIntersection(const glm::vec3 &oldBlock, const glm::vec3& blockPos, const Ray& ray, BlockInfo &outInfo, float& distance)
+{
+	glm::vec3 blocks[] = {
+		{ blockPos.x,        blockPos.y + 1.0f, blockPos.z        }, // top
+		{ blockPos.x,        blockPos.y - 1.0f, blockPos.z        }, // bottom
+		{ blockPos.x - 1.0f, blockPos.y,        blockPos.z        }, // west
+		{ blockPos.x,        blockPos.y,        blockPos.z + 1.0f }, // north
+		{ blockPos.x + 1.0f, blockPos.y,        blockPos.z        }, // east
+		{ blockPos.x,        blockPos.y,        blockPos.z - 1.0f }  // south
+	};
+	
+	for(auto &block: blocks)
+	{
+		float dist = 0.0f;
+		if(block == oldBlock)
+			continue;
+		
+		if(rayBlockIntersects(block, ray, dist))
+		{
+			if(dist >= 16.0f)
+				continue;
+			
+			BlockInfo cbi;
+			if(!getBlockInfo(block, cbi))
+			{
+				NBT_Debug("failed to get block?");
+				continue; // we dont know what kind of block this is, so assume its invisible.
+							 // might want to change this to solid later?
+			}
+			
+			NBT_Debug("intersected block: %i:%i %.02f,%.02f,%.02f dist:%.02f", cbi.id, cbi.data, block.x, block.y, block.z, dist);
+			
+			if(BlockData::isSolid(cbi.id))
+			{
+				NBT_Debug("block is solid!");
+				outInfo = cbi;
+				distance = dist;
+				return true;
+			}
+			else
+			{
+				return traceRayIntersection(blockPos, block, ray, outInfo, dist);
+			}
+		}
+	}
+	
+	return false;
+}
 
 bool Renderer::rayBlockIntersects(const glm::vec3& orig, const Ray& ray, float& distance)
 {
@@ -745,7 +793,7 @@ bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm
 
 bool Renderer::lookCollision(const Ray& in, BlockInfo &outInfo, float &distance)
 {
-	BlockInfo bi;
+	/*BlockInfo bi;
 	if(!getBlockInfo(in.start(), bi))
 		return false;
 	
@@ -753,38 +801,15 @@ bool Renderer::lookCollision(const Ray& in, BlockInfo &outInfo, float &distance)
 	if(BlockData::isSolid(bi.id))
 	{
 		// we're solid, so we don't need to check for surrounding blocks
+		outInfo = bi;
+		distance = 0.0f;
 		return true;
-	}
+	}*/
 	
-	glm::vec3 blockPos = in.start();
-	float dist = 0.0f;
+	glm::vec3 blockPos = glm::floor(in.start());
 	
-	glm::vec3 blocks[] = {
-		{ blockPos.x,        blockPos.y + 1.0f, blockPos.z        }, // top
-		{ blockPos.x,        blockPos.y - 1.0f, blockPos.z        }, // bottom
-		{ blockPos.x - 1.0f, blockPos.y,        blockPos.z        }, // west
-		{ blockPos.x,        blockPos.y,        blockPos.z + 1.0f }, // north
-		{ blockPos.x + 1.0f, blockPos.y,        blockPos.z        }, // east
-		{ blockPos.x,        blockPos.y,        blockPos.z - 1.0f }  // south
-	};
-	
-	for(auto &block: blocks)
-	{
-		if(rayBlockIntersects(block, in, dist))
-		{
-			BlockInfo cbi;
-			if(!getBlockInfo(in.start(), cbi))
-				continue; // we dont know what kind of block this is, so assume its invisible.
-							 // might want to change this to solid later?
-		
-			if(BlockData::isSolid(cbi.id))
-			{
-				outInfo = cbi;
-				distance = dist;
-				return true;
-			}
-		}
-	}
+	if(traceRayIntersection(blockPos, blockPos, in, outInfo, distance))
+		return true;
 	
 	return false;
 }
