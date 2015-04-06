@@ -7,7 +7,7 @@ class Ray
 {
 	public:
 		Ray(const glm::vec3 &start, const glm::vec3 &end) : m_start(start), m_end(end), m_dir(glm::normalize(end-start)) { }
-		Ray(const glm::vec3 &start, const glm::vec3 &dir, float length) : m_start(start), m_end(dir * length), m_dir(glm::normalize(dir)) { }
+		Ray(const glm::vec3 &start, const glm::vec3 &dir, float length) : m_start(start), m_end(start + dir * length), m_dir(glm::normalize(dir)) { }
 		~Ray() { }
 		
 		glm::vec3 start() const { return m_start; }

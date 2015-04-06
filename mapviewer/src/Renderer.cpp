@@ -564,17 +564,26 @@ void Renderer::drawHud()
 void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
-	Ray ray = Ray(cam_pos, cam_pos+camera_.getTarget(), 32.0f);
+	Ray ray = Ray(cam_pos-(camera_.getTarget()*2.0f), -camera_.getTarget(), 8.0f);
 	
-	BlockInfo colBlockInfo;
+	BlockInfo colBlockInfo = look_block_info_;
 	float distance;
 	
-	if(lookCollision(ray, colBlockInfo, distance))
+	
+	if(fastVoxelLookCollision(ray, colBlockInfo))
 	{
 		look_block_address_ = colBlockInfo.addr;
 		look_block_info_ = colBlockInfo;
-		look_pos_ = cam_pos + camera_.getTarget() * distance;
+		look_pos_ = glm::vec3(colBlockInfo.addr.x, colBlockInfo.addr.y, colBlockInfo.addr.z);
 	}
+	else {
+		look_pos_ = cam_pos - camera_.getTarget() * 2.0f;
+		colBlockInfo.addr = BlockAddress(0, look_pos_.x, look_pos_.y, look_pos_.z);
+		look_block_info_ = colBlockInfo;
+		look_block_address_ = colBlockInfo.addr;
+	}
+	
+	
 }
 
 /* for this collision stuff we need to walk along the ray in even block coords,
@@ -608,14 +617,14 @@ bool Renderer::getBlockInfo(const glm::vec3& in, BlockInfo& blockInfo)
 	BlockAddress ba;
 	if(!c->getBlockAddress(x, y, z, &ba))
 	{
-		NBT_Debug("failed to get block address: %i,%i,%i", x, y, z);
+		NBT_Debug("failed to get block address: %.02f,%.02f,%.02f", x, y, z);
 		return false;
 	}
 	
 	BlockInfo bi;
 	if(!c->getBlockInfo(ba, &bi))
 	{
-		NBT_Debug("failed to get block info: %i,%i,%i", x, y, z);
+		NBT_Debug("failed to get block info: %f,%f,%f", x, y, z);
 		return false;
 	}
 	
@@ -787,6 +796,105 @@ bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm
 	out = orig;
 	distance = 0.0;
 	
+	return false;
+}
+
+bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
+{
+	glm::vec3 start = glm::floor(ray.start());
+	glm::vec3 end = glm::floor(ray.end());
+	glm::vec3 dir = ray.direction();
+	int32_t outX = end.x, outY = end.y, outZ = end.z;
+	
+	NBT_Debug("start(%f,%f,%f) dir(%.02f,%.02f,%.02f)", start.x, start.y, start.z, dir.x, dir.y, dir.z);
+	
+	float tMaxX = 1.0f - dir.x;
+	float tMaxY = 1.0f - dir.y;
+	float tMaxZ = 1.0f - dir.z;
+	int32_t X = start.x, Y = start.y, Z = start.z;
+	int32_t stepX = 0, stepY = 0, stepZ = 0;
+	float tDeltaX = 1.0f / dir.x, tDeltaY = 1.0f / dir.y, tDeltaZ = 1.0f / dir.z;
+	
+	stepX = dir.x >= 0 ? 1 : -1;
+	stepY = dir.y >= 0 ? 1 : -1;
+	stepZ = dir.z >= 0 ? 1 : -1;
+	
+	NBT_Debug("tDeltaX:%.02f, tDeltaY:%.02f, tDeltaZ:%.02f", tDeltaX, tDeltaY, tDeltaZ);
+	NBT_Debug("X:%i, Y:%i, Z:%i, stepX:%i, stepY:%i, stepZ:%i", X, Y, Z, stepX, stepY, stepZ);
+	
+	do {
+		if(tMaxX < tMaxY) 
+		{
+			if(tMaxX < tMaxZ) 
+			{
+				NBT_Debug("tMaxX(%f) < tMaxZ(%f): X(%i) += stepX(%i)", tMaxX, tMaxZ, X, stepX);
+				X = X + stepX;
+	
+				if(X == outX)
+					return false; // past end of ray
+				
+				tMaxX = tMaxX + tDeltaX;
+			}
+			else 
+			{
+				NBT_Debug("tMaxX(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxX, tMaxZ, Z, stepZ);
+				Z = Z + stepZ;
+			
+				if(Z == outZ)
+					return false;
+
+				tMaxZ = tMaxZ + tDeltaZ;
+			}
+		}
+		else 
+		{
+			if(tMaxY < tMaxZ) 
+			{
+				NBT_Debug("tMaxY(%f) < tMaxZ(%f): Y(%i) += stepY(%i)", tMaxY, tMaxZ, Y, stepY);
+				Y = Y + stepY;
+			
+				if(Y == outY)
+					return false;
+				
+				tMaxY = tMaxY + tDeltaY;
+			}
+			else
+			{
+				NBT_Debug("tMaxY(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxY, tMaxZ, Z, stepZ);
+				Z = Z + stepZ;
+				
+				if(Z == outZ)
+					return false;
+				
+				tMaxZ = tMaxZ + tDeltaZ;
+			}
+		}
+		
+		// got next block: X,Y,Z
+		
+		NBT_Debug("intersected block: %i,%i,%i", X, Y, Z);
+		
+		BlockInfo bi;
+		if(!getBlockInfo({ (float)X, (float)Y, (float)Z }, bi))
+		{
+			NBT_Debug("failed to get block?");
+			bi.id = BLOCK_AIR;
+			bi.data = 0;
+			bi.state_name = "Air";
+			return false; // we dont know what kind of block this is, so assume its invisible.
+						   	// might want to change this to solid later?
+		}
+		
+		if(BlockData::isSolid(bi.id))
+		{
+			NBT_Debug("block is solid!");
+			outInfo = bi;
+			return true;
+		}
+		
+	} while(1);
+	
+	NBT_Debug("no block found :(");
 	return false;
 }
 
