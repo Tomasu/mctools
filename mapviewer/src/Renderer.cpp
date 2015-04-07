@@ -801,23 +801,25 @@ bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm
 
 bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 {
-	glm::vec3 start = glm::floor(ray.start());
-	glm::vec3 end = glm::floor(ray.end());
+	glm::vec3 start = ray.start();
+	glm::vec3 end = ray.end();
 	glm::vec3 dir = ray.direction();
 	int32_t outX = end.x, outY = end.y, outZ = end.z;
 	
 	NBT_Debug("start(%f,%f,%f) dir(%.02f,%.02f,%.02f)", start.x, start.y, start.z, dir.x, dir.y, dir.z);
 	
-	float tMaxX = 1.0f - dir.x;
-	float tMaxY = 1.0f - dir.y;
-	float tMaxZ = 1.0f - dir.z;
-	int32_t X = start.x, Y = start.y, Z = start.z;
 	int32_t stepX = 0, stepY = 0, stepZ = 0;
-	float tDeltaX = 1.0f / dir.x, tDeltaY = 1.0f / dir.y, tDeltaZ = 1.0f / dir.z;
-	
+		
 	stepX = dir.x >= 0 ? 1 : -1;
 	stepY = dir.y >= 0 ? 1 : -1;
 	stepZ = dir.z >= 0 ? 1 : -1;
+	
+	float tMaxX = (stepX > 0 ? floor(start.x) + 1.0f : ceil(start.x) - 1.0f)/dir.x;
+	float tMaxY = (stepY > 0 ? floor(start.y) + 1.0f : ceil(start.y) - 1.0f)/dir.y;
+	float tMaxZ = (stepZ > 0 ? floor(start.z) + 1.0f : ceil(start.z) - 1.0f)/dir.z;
+	int32_t X = start.x, Y = start.y, Z = start.z;
+	
+	float tDeltaX = 1.0f / dir.x, tDeltaY = 1.0f / dir.y, tDeltaZ = 1.0f / dir.z;
 	
 	NBT_Debug("tDeltaX:%.02f, tDeltaY:%.02f, tDeltaZ:%.02f", tDeltaX, tDeltaY, tDeltaZ);
 	NBT_Debug("X:%i, Y:%i, Z:%i, stepX:%i, stepY:%i, stepZ:%i", X, Y, Z, stepX, stepY, stepZ);
