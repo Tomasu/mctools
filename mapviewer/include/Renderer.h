@@ -91,6 +91,16 @@ class Renderer
 		
 		std::queue<Chunk::Key> loadChunkQueue;
 		
+		int32_t m_frame_count;
+		int32_t m_fps;
+		double m_frame_time;
+		double m_min_frame_time;
+		double m_max_frame_time;
+		double m_min_frame_time_cur;
+		double m_max_frame_time_cur;
+		double m_frame_start_time;
+		double m_frame_end_time;
+		
 		void processChunk(int x, int z);
 		void autoLoadChunks(int x, int z);
 		bool isChunkVisible(Vector3D origin, Vector3D pos);

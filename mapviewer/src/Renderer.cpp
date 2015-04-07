@@ -176,6 +176,7 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 	//al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
    //al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
+	al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
 
 	dpy = al_create_display(1024, 768);
 
@@ -280,6 +281,18 @@ void Renderer::run()
 
 	bool redraw = false;
 	bool cleared = false;
+	
+	m_frame_count = 0;
+	
+	m_frame_start_time = al_get_time();
+	m_frame_end_time = m_frame_start_time;
+	
+	m_max_frame_time = m_max_frame_time_cur = 0.0;
+	m_min_frame_time = m_min_frame_time_cur = 0.0;
+	
+	m_frame_time = 0.0;
+	
+	float last_second = al_get_time();
 	
 	while(1)
 	{
@@ -427,6 +440,30 @@ void Renderer::run()
 
 			al_restore_state(&state);
          al_flip_display();
+			
+			m_frame_end_time = m_frame_start_time;
+			m_frame_start_time = al_get_time();
+			
+			m_frame_time = (m_frame_start_time - m_frame_end_time) * 1000.0f;
+			if(m_frame_time > m_max_frame_time)
+				m_max_frame_time = m_frame_time;
+			if(!m_min_frame_time || m_frame_time < m_min_frame_time)
+				m_min_frame_time = m_frame_time;
+				
+			double cur_time = al_get_time();
+			if(cur_time-last_second > 1.0)
+			{
+				m_fps = m_frame_count;
+				m_frame_count = 0;
+				last_second = cur_time;
+				
+				m_min_frame_time_cur = m_min_frame_time;
+				m_max_frame_time_cur = m_max_frame_time;
+				m_min_frame_time = 0.0;
+				m_max_frame_time = 0.0;
+			}
+			
+			m_frame_count++;
       }
 
 
@@ -545,7 +582,9 @@ void Renderer::drawHud()
 	
 	int dw = al_get_display_width(dpy_);
 	int dh = al_get_display_height(dpy_);
-	al_draw_filled_rectangle(0, dh-36, dw/2, dh, al_map_rgba(0,0,0,200));
+	al_draw_filled_rectangle(0, dh-48, dw/2, dh, al_map_rgba(0,0,0,200));
+	
+	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-40, 0, "FPS: %4i FT: %3.02f - %3.02f - %3.02f", m_fps, m_min_frame_time_cur, m_frame_time, m_max_frame_time_cur);
 	
 	al_draw_textf(fnt_, al_map_rgb(255,255,255), 8, dh-26, 0, "Block: bi:%i:%i:%s (%i, %i) x:%i, y:%i, z:%i", look_block_info_.id, look_block_info_.data, block_name, look_block_address_.x / 16, look_block_address_.z / 16, look_block_address_.x, look_block_address_.y, look_block_address_.z);
 	
