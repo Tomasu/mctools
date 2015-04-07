@@ -176,7 +176,7 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 	//al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
    //al_set_new_display_option(ALLEGRO_SAMPLES, 4, ALLEGRO_REQUIRE);
 	al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 24, ALLEGRO_REQUIRE);
-	al_set_new_display_option(ALLEGRO_VSYNC, 1, ALLEGRO_REQUIRE);
+	al_set_new_display_option(ALLEGRO_VSYNC, 0, ALLEGRO_REQUIRE);
 
 	dpy = al_create_display(1024, 768);
 
