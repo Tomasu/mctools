@@ -924,7 +924,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	// These next variables are for the debug grids.
 	auto hitCoord = [&](int32_t a, int32_t b) -> int32_t {
 		int32_t out = (a + 9) + (b + 9) * 19;
-		if (out >=  (19*19))
+		if (fabs(a) > 9 || fabs(b) > 9)
 		{
 			//NBT_Debug("Error! hitCoords out of bounds: %i, %i", a, b);
 			//NBT_Debug("hitCoords: X, Xo: %i, %i, Y, Yo: %i, %i, Z, Zo: %i, %i", X, Xo, Y, Yo, Z, Zo);
