@@ -922,8 +922,15 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	int32_t outX = fabs(ray.length()*tDeltaX), outY = fabs(ray.length()*tDeltaY), outZ = fabs(ray.length()*tDeltaZ);
 	
 	// These next variables are for the debug grids.
-	auto hitCoord = [](int32_t a, int32_t b) -> int32_t {
-		return (a + 9) + (b + 9) * 19;
+	auto hitCoord = [&](int32_t a, int32_t b) -> int32_t {
+		int32_t out = (a + 9) + (b + 9) * 19;
+		if (out >=  (19*19))
+		{
+			//NBT_Debug("Error! hitCoords out of bounds: %i, %i", a, b);
+			//NBT_Debug("hitCoords: X, Xo: %i, %i, Y, Yo: %i, %i, Z, Zo: %i, %i", X, Xo, Y, Yo, Z, Zo);
+			return 0;
+		}
+		return out;
 	};
 	
 	for (auto &z : hit_xz) z = 0;
@@ -943,6 +950,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 					return false; // past end of ray
 				
 				tMaxX += fabs(tDeltaX);
+				
 				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
 				//hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
 				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
@@ -952,14 +960,14 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 				NBT_Debug("tMaxX(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxX, tMaxZ, Z, stepZ);
 				Z += stepZ;
 				
+							
+				if(fabs(Z - Zo) >= outZ)
+					return false;
+				tMaxZ += fabs(tDeltaZ);
+								
 				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
 				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
 				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
-			
-				if(fabs(Z - Zo) >= outZ)
-					return false;
-
-				tMaxZ += fabs(tDeltaZ);
 			}
 		}
 		else 
@@ -967,30 +975,30 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 			if(tMaxY < tMaxZ) 
 			{
 				NBT_Debug("tMaxY(%f) < tMaxZ(%f): Y(%i) += stepY(%i)", tMaxY, tMaxZ, Y, stepY);
-				Y = Y + stepY;
-				
-				//hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
-				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
-				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
-			
+				Y += stepY;
 				if(fabs(Y-Yo) >= outY)
 					return false;
 				
 				tMaxY += fabs(tDeltaY);
+								
+				//hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+			
 			}
 			else
 			{
 				NBT_Debug("tMaxY(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxY, tMaxZ, Z, stepZ);
 				Z += stepZ;
-				
-				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
-				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
-				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
-				
 				if(fabs(Z-Zo) >= outZ)
 					return false;
 				
 				tMaxZ += fabs(tDeltaZ);
+								
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+				
 			}
 		}
 		
