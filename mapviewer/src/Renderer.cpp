@@ -620,6 +620,8 @@ void Renderer::drawHud()
 			{
 				const int32_t &hit = hits[x+y*19];
 				ALLEGRO_COLOR col = hit ? al_map_rgba(255,128,0,200) : al_map_rgba(0,0,0,200);
+				if (x == 9 && y == 9)
+					col = al_map_rgba(0,255,0,200);
 				int32_t cx = xoff+x*delta;
 				int32_t cy = yoff+y*delta;
 				al_draw_filled_rectangle(cx, cy,cx+delta-1, cy+delta-1, col);
@@ -628,8 +630,8 @@ void Renderer::drawHud()
 		
 		glm::vec2 end = glm::column(ray, 0);
 		glm::vec2 start = glm::column(ray, 1);
-		const float centerx_s = xoff + 8 * delta;
-		const float centery_s = yoff + 8 * delta;
+		const float centerx_s = xoff + 9 * delta;
+		const float centery_s = yoff + 9 * delta;
 		al_draw_line(centerx_s + start.x * delta, centery_s + start.y * delta,
 					 centerx_s + end.x * delta, centery_s + end.y * delta,
 			   al_map_rgba(0,0,255,255), 2.f);
@@ -913,15 +915,15 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	yz_r = { start.y - Y, start.z - Z, end.y-start.y, end.z-start.z };
 	xy_r = { start.x - X, start.y - Y, end.x-start.x, end.y-start.y };
 	
-	float tMaxX = ((float)X + stepX - start.x)*tDeltaX;
-	float tMaxY = ((float)Y + stepY - start.y)*tDeltaY;
-	float tMaxZ = ((float)Z + stepZ - start.z)*tDeltaZ;
+	float tMaxX = fabs(((float)X + stepX - start.x)*tDeltaX);
+	float tMaxY = fabs(((float)Y + stepY - start.y)*tDeltaY);
+	float tMaxZ = fabs(((float)Z + stepZ - start.z)*tDeltaZ);
 	
 	int32_t outX = fabs(ray.length()*tDeltaX), outY = fabs(ray.length()*tDeltaY), outZ = fabs(ray.length()*tDeltaZ);
 	
 	// These next variables are for the debug grids.
 	auto hitCoord = [](int32_t a, int32_t b) -> int32_t {
-		return (a + 8) + (b + 8) * 19;
+		return (a + 9) + (b + 9) * 19;
 	};
 	
 	for (auto &z : hit_xz) z = 0;
@@ -993,7 +995,6 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 		}
 		
 		// got next block: X,Y,Z
-		
 		NBT_Debug("intersected block: %i,%i,%i", X, Y, Z);
 		
 		BlockInfo bi;
