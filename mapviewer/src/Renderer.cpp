@@ -38,7 +38,14 @@
 
 Renderer::Renderer() : level_(nullptr), queue_(nullptr), tmr_(nullptr), dpy_(nullptr)
 {
-	
+	// Set a reserve size for the vectors that we use to track
+	// fastVoxelLookCollision hits.
+	hit_xz.resize(19*19, 0);
+	hit_yz.resize(19*19, 0);
+	hit_xy.resize(19*19, 0);
+//	xz_r = glm::vec2(0,0);
+//	yz_r = glm::vec2(0,0);
+//	xy_r = glm::vec2(0,0);
 }
 
 Renderer::~Renderer()
@@ -559,12 +566,49 @@ void Renderer::drawHud()
 	
 	al_draw_line(dw/2-10, dh/2, dw/2+10, dh/2, al_map_rgb(0,0,0), 1);
 	al_draw_line(dw/2, dh/2-10, dw/2, dh/2+10, al_map_rgb(0,0,0), 1);
+	
+	// Draw sum graphzz so we can debug the ray that's tracing
+	// for block look detection.
+	
+	auto renderDebugGrid = [&](std::vector<int32_t> &hits, int32_t xoff, int32_t yoff, char *mode, glm::mat2x2 &ray)
+	{
+		const float delta = 9;
+		const float gsize = delta * 19;
+		
+		for (int32_t x = 0; x < 19; ++x)
+		{
+			for (int32_t y = 0; y < 19; ++y)
+			{
+				const int32_t &hit = hits[x+y*19];
+				ALLEGRO_COLOR col = hit ? al_map_rgba(255,128,0,200) : al_map_rgba(0,0,0,200);
+				int32_t cx = xoff+x*delta;
+				int32_t cy = yoff+y*delta;
+				al_draw_filled_rectangle(cx, cy,cx+delta-1, cy+delta-1, col);
+			}
+		}
+		
+		glm::vec2 end = glm::column(ray, 0);
+		glm::vec2 start = glm::column(ray, 1);
+		const float centerx_s = xoff + 8 * delta;
+		const float centery_s = yoff + 8 * delta;
+		al_draw_line(centerx_s + start.x * delta, centery_s + start.y * delta,
+					 centerx_s + end.x * delta, centery_s + end.y * delta,
+			   al_map_rgba(0,0,255,255), 2.f);
+		
+		al_draw_filled_rectangle(xoff, yoff-14,xoff+gsize, yoff-1, al_map_rgba(0,0,0,200));
+		al_draw_textf(fnt_, al_map_rgb(255,255,255), xoff, yoff-12, 0, mode);
+	};
+	
+	renderDebugGrid(hit_xy, dw-9*19, dh-9*19, "X-Y", xy_r);
+	renderDebugGrid(hit_xz, dw-9*19*2, dh-9*19, "X-Z", xz_r);
+	renderDebugGrid(hit_yz, dw-9*19*3, dh-9*19, "Y-Z", yz_r);
 }
 
 void Renderer::updateLookPos()
 {
 	glm::vec3 cam_pos = camera_.getPos();
-	Ray ray = Ray(cam_pos-(camera_.getTarget()*2.0f), -camera_.getTarget(), 8.0f);
+	//Ray ray = Ray(cam_pos-(camera_.getTarget()*2.0f), -camera_.getTarget(), 8.0f);
+	Ray ray = Ray(cam_pos, -camera_.getTarget(), 8.0f);
 	
 	BlockInfo colBlockInfo = look_block_info_;
 	float distance;
@@ -576,12 +620,14 @@ void Renderer::updateLookPos()
 		look_block_info_ = colBlockInfo;
 		look_pos_ = glm::vec3(colBlockInfo.addr.x, colBlockInfo.addr.y, colBlockInfo.addr.z);
 	}
+	/*
 	else {
 		look_pos_ = cam_pos - camera_.getTarget() * 2.0f;
 		colBlockInfo.addr = BlockAddress(0, look_pos_.x, look_pos_.y, look_pos_.z);
 		look_block_info_ = colBlockInfo;
 		look_block_address_ = colBlockInfo.addr;
 	}
+	*/
 	
 	
 }
@@ -801,49 +847,78 @@ bool Renderer::rayBlockFaceIntersects(const glm::vec3 &orig, const Ray& ray, glm
 
 bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 {
-	glm::vec3 start = glm::floor(ray.start());
-	glm::vec3 end = glm::floor(ray.end());
+	glm::vec3 start = ray.start();
+	glm::vec3 end = ray.end();
 	glm::vec3 dir = ray.direction();
-	int32_t outX = end.x, outY = end.y, outZ = end.z;
 	
-	NBT_Debug("start(%f,%f,%f) dir(%.02f,%.02f,%.02f)", start.x, start.y, start.z, dir.x, dir.y, dir.z);
-	
-	float tMaxX = 1.0f - dir.x;
-	float tMaxY = 1.0f - dir.y;
-	float tMaxZ = 1.0f - dir.z;
-	int32_t X = start.x, Y = start.y, Z = start.z;
-	int32_t stepX = 0, stepY = 0, stepZ = 0;
-	float tDeltaX = 1.0f / dir.x, tDeltaY = 1.0f / dir.y, tDeltaZ = 1.0f / dir.z;
+	// Amount of change in t for t*dir to move 1 unit in each axis.
+	float tDeltaX = 1.0f/dir.x, tDeltaY = 1.0f/dir.y, tDeltaZ = 1.0f/dir.z;
+	int32_t stepX, stepY, stepZ;
 	
 	stepX = dir.x >= 0 ? 1 : -1;
 	stepY = dir.y >= 0 ? 1 : -1;
 	stepZ = dir.z >= 0 ? 1 : -1;
 	
-	NBT_Debug("tDeltaX:%.02f, tDeltaY:%.02f, tDeltaZ:%.02f", tDeltaX, tDeltaY, tDeltaZ);
-	NBT_Debug("X:%i, Y:%i, Z:%i, stepX:%i, stepY:%i, stepZ:%i", X, Y, Z, stepX, stepY, stepZ);
+	int32_t X,Y,Z;
+	int32_t Xo, Yo, Zo;
+	//int32_t Xoff = 0, Yoff = 0, Zoff = 0;
+	
+	X = floor(start.x);
+	Y = floor(start.y);
+	Z = floor(start.z);
+	Xo = X;
+	Yo = Y;
+	Zo = Z;
+	
+	xz_r = { start.x - X, start.z - Z, end.x-start.x, end.z-start.z };
+	yz_r = { start.y - Y, start.z - Z, end.y-start.y, end.z-start.z };
+	xy_r = { start.x - X, start.y - Y, end.x-start.x, end.y-start.y };
+	
+	float tMaxX = ((float)X + stepX - start.x)*tDeltaX;
+	float tMaxY = ((float)Y + stepY - start.y)*tDeltaY;
+	float tMaxZ = ((float)Z + stepZ - start.z)*tDeltaZ;
+	
+	int32_t outX = fabs(ray.length()*tDeltaX), outY = fabs(ray.length()*tDeltaY), outZ = fabs(ray.length()*tDeltaZ);
+	
+	// These next variables are for the debug grids.
+	auto hitCoord = [](int32_t a, int32_t b) -> int32_t {
+		return (a + 8) + (b + 8) * 19;
+	};
+	
+	for (auto &z : hit_xz) z = 0;
+	for (auto &z : hit_yz) z = 0;
+	for (auto &z : hit_xy) z = 0;
 	
 	do {
-		if(tMaxX < tMaxY) 
+		//++iterations;
+		if(tMaxX < tMaxY)
 		{
-			if(tMaxX < tMaxZ) 
+			if(tMaxX < tMaxZ)
 			{
 				NBT_Debug("tMaxX(%f) < tMaxZ(%f): X(%i) += stepX(%i)", tMaxX, tMaxZ, X, stepX);
-				X = X + stepX;
+				X += stepX;
 	
-				if(X == outX)
+				if(fabs(X - Xo) >= outX)
 					return false; // past end of ray
 				
-				tMaxX = tMaxX + tDeltaX;
+				tMaxX += fabs(tDeltaX);
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				//hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
 			}
 			else 
 			{
 				NBT_Debug("tMaxX(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxX, tMaxZ, Z, stepZ);
-				Z = Z + stepZ;
+				Z += stepZ;
+				
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
 			
-				if(Z == outZ)
+				if(fabs(Z - Zo) >= outZ)
 					return false;
 
-				tMaxZ = tMaxZ + tDeltaZ;
+				tMaxZ += fabs(tDeltaZ);
 			}
 		}
 		else 
@@ -852,21 +927,29 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 			{
 				NBT_Debug("tMaxY(%f) < tMaxZ(%f): Y(%i) += stepY(%i)", tMaxY, tMaxZ, Y, stepY);
 				Y = Y + stepY;
+				
+				//hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
 			
-				if(Y == outY)
+				if(fabs(Y-Yo) >= outY)
 					return false;
 				
-				tMaxY = tMaxY + tDeltaY;
+				tMaxY += fabs(tDeltaY);
 			}
 			else
 			{
 				NBT_Debug("tMaxY(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxY, tMaxZ, Z, stepZ);
-				Z = Z + stepZ;
+				Z += stepZ;
 				
-				if(Z == outZ)
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+				
+				if(fabs(Z-Zo) >= outZ)
 					return false;
 				
-				tMaxZ = tMaxZ + tDeltaZ;
+				tMaxZ += fabs(tDeltaZ);
 			}
 		}
 		
@@ -877,6 +960,135 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 		BlockInfo bi;
 		if(!getBlockInfo({ (float)X, (float)Y, (float)Z }, bi))
 		{
+			continue;
+		}
+		else if(BlockData::isSolid(bi.id))
+		{
+			//NBT_Debug("Iterations: %i", iterations);
+			NBT_Debug("block is solid!");
+			outInfo = bi;
+			return true;
+		}
+		
+		
+	} while(1);
+	
+	/*
+	glm::vec3 start = ray.start();
+	glm::vec3 end = ray.end();
+	glm::vec3 dir = ray.direction();
+	glm::vec3 hit;
+	int32_t outX = fabs(end.x-start.x), outY = fabs(end.y-start.y), outZ = fabs(end.z-start.z);
+	int32_t stepX = 0, stepY = 0, stepZ = 0;
+	
+	stepX = dir.x >= 0 ? 1 : -1;
+	stepY = dir.y >= 0 ? 1 : -1;
+	stepZ = dir.z >= 0 ? 1 : -1;
+	
+	NBT_Debug("start(%f,%f,%f) dir(%.02f,%.02f,%.02f)", start.x, start.y, start.z, dir.x, dir.y, dir.z);
+	
+	float tMaxX = fabs((stepX > 0 ? floor(start.x) + 1.0f : ceil(start.x) - 1.0f)/dir.x);
+	float tMaxY = fabs((stepY > 0 ? floor(start.y) + 1.0f : ceil(start.y) - 1.0f)/dir.y);
+	float tMaxZ = fabs((stepZ > 0 ? floor(start.z) + 1.0f : ceil(start.z) - 1.0f)/dir.z);
+	int32_t X = floor(start.x), Y = floor(start.y), Z = floor(start.z);
+	float tDeltaX = abs(1.0f/dir.x), tDeltaY = abs(1.0f/dir.y), tDeltaZ = abs(1.0f/dir.z);
+	
+	NBT_Debug("tDeltaX:%.02f, tDeltaY:%.02f, tDeltaZ:%.02f", tDeltaX, tDeltaY, tDeltaZ);
+	NBT_Debug("X:%i, Y:%i, Z:%i, stepX:%i, stepY:%i, stepZ:%i", X, Y, Z, stepX, stepY, stepZ);
+	NBT_Debug("OutX: %i, OutY: %i, OutZ: %i\n", outX, outY, outZ);
+	
+	if (tMaxX < 0.0f || tMaxY < 0.0f || tMaxZ < 0.0f)
+	{
+		NBT_Debug("tMaxs out of bounds: X: %f, Y: %f, Z: %f\n", tMaxX, tMaxY, tMaxZ);
+		exit(1);
+	}
+	
+	hit = glm::floor(start);
+	
+	int32_t Xo = hit.x, Yo = hit.y, Zo = hit.z;
+	
+	auto hitCoord = [](int32_t a, int32_t b) -> int32_t {
+		return (a + 8) + (b + 8) * 19;
+	};
+	
+	for (auto &z : hit_xz) z = 0;
+	for (auto &z : hit_yz) z = 0;
+	for (auto &z : hit_xy) z = 0;
+	
+	int32_t iterations = 0;
+	
+	do {
+		++iterations;
+		if(tMaxX < tMaxY)
+		{
+			if(tMaxX < tMaxZ)
+			{
+				NBT_Debug("tMaxX(%f) < tMaxZ(%f): X(%i) += stepX(%i)", tMaxX, tMaxZ, X, stepX);
+				X = X + stepX;
+	
+				if((X - Xo) >= outX)
+					return false; // past end of ray
+				
+				tMaxX += abs(tDeltaX);
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				//hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+			}
+			else 
+			{
+				NBT_Debug("tMaxX(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxX, tMaxZ, Z, stepZ);
+				Z = Z + stepZ;
+				
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+			
+				if((Z - Zo) >= outZ)
+					return false;
+
+				tMaxZ += tDeltaZ;
+			}
+		}
+		else 
+		{
+			if(tMaxY < tMaxZ) 
+			{
+				NBT_Debug("tMaxY(%f) < tMaxZ(%f): Y(%i) += stepY(%i)", tMaxY, tMaxZ, Y, stepY);
+				Y = Y + stepY;
+				
+				//hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+			
+				if((Y-Yo) >= outY)
+					return false;
+				
+				tMaxY += tDeltaY;
+			}
+			else
+			{
+				NBT_Debug("tMaxY(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxY, tMaxZ, Z, stepZ);
+				Z = Z + stepZ;
+				
+				hit_xz[hitCoord(X-Xo, Z-Zo)] = 1;
+				hit_yz[hitCoord(Y-Yo, Z-Zo)] = 1;
+				//hit_xy[hitCoord(X-Xo, Y-Yo)] = 1;
+				
+				if((Z-Zo) >= outZ)
+					return false;
+				
+				tMaxZ += tDeltaZ;
+			}
+		}
+		
+		// got next block: X,Y,Z
+		
+		NBT_Debug("intersected block: %i,%i,%i", X, Y, Z);
+		
+		BlockInfo bi;
+		if(!getBlockInfo({ (float)X, (float)Y, (float)Z }, bi))
+		{
+			continue;
 			NBT_Debug("failed to get block?");
 			bi.id = BLOCK_AIR;
 			bi.data = 0;
@@ -884,15 +1096,17 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 			return false; // we dont know what kind of block this is, so assume its invisible.
 						   	// might want to change this to solid later?
 		}
-		
-		if(BlockData::isSolid(bi.id))
+		else if(BlockData::isSolid(bi.id))
 		{
+			NBT_Debug("Iterations: %i", iterations);
 			NBT_Debug("block is solid!");
 			outInfo = bi;
 			return true;
 		}
 		
+		
 	} while(1);
+	*/
 	
 	NBT_Debug("no block found :(");
 	return false;

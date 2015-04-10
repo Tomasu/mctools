@@ -8,6 +8,7 @@
 #include <allegro5/allegro.h>
 
 #include "glm/fwd.hpp"
+#include "glm/ext.hpp"
 
 #include "PairHash.h"
 #include "Util.h"
@@ -90,6 +91,14 @@ class Renderer
 		ResourceManager *resManager_;
 		
 		std::queue<Chunk::Key> loadChunkQueue;
+		// Debug objects for fastVoxelLookCollision
+		// These vectors allow us to track the hits in a 2d plane.
+		std::vector<int32_t> hit_xz;
+		std::vector<int32_t> hit_yz;
+		std::vector<int32_t> hit_xy;
+		glm::mat2x2 xz_r;
+		glm::mat2x2 yz_r;
+		glm::mat2x2 xy_r;
 		
 		void processChunk(int x, int z);
 		void autoLoadChunks(int x, int z);
