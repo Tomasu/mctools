@@ -915,9 +915,12 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	yz_r = { start.y - Y, start.z - Z, end.y-start.y, end.z-start.z };
 	xy_r = { start.x - X, start.y - Y, end.x-start.x, end.y-start.y };
 	
-	float tMaxX = fabs(((float)X + stepX - start.x)*tDeltaX);
-	float tMaxY = fabs(((float)Y + stepY - start.y)*tDeltaY);
-	float tMaxZ = fabs(((float)Z + stepZ - start.z)*tDeltaZ);
+	float tMaxX = fabs(((float)X + (dir.x > 0 ? 1 : 0) - start.x)*tDeltaX);
+	float tMaxY = fabs(((float)Y + (dir.y > 0 ? 1 : 0) - start.y)*tDeltaY);
+	float tMaxZ = fabs(((float)Z + (dir.z > 0 ? 1 : 0)  - start.z)*tDeltaZ);
+	NBT_Debug("(X(%i) + stepX(%i) - start.x(%f))*tDeltaX(%f) = tMaxX(%f)",
+		X, stepX, start.x, tDeltaX, tMaxX
+	);
 	
 	int32_t outX = fabs(ray.length()*tDeltaX), outY = fabs(ray.length()*tDeltaY), outZ = fabs(ray.length()*tDeltaZ);
 	
@@ -936,6 +939,8 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	for (auto &z : hit_xz) z = 0;
 	for (auto &z : hit_yz) z = 0;
 	for (auto &z : hit_xy) z = 0;
+	
+	NBT_Debug("tDeltaX(%f), tDeltaY(%f), tDeltaZ(%f)", tDeltaX, tDeltaY, tDeltaZ);
 	
 	do {
 		//++iterations;
