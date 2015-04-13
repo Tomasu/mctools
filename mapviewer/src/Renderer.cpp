@@ -919,15 +919,15 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	stepZ = dir.z >= 0 ? 1 : -1;
 	
 	int32_t X,Y,Z;
-	int32_t Xo, Yo, Zo;
+	float Xo, Yo, Zo;
 	//int32_t Xoff = 0, Yoff = 0, Zoff = 0;
 	
 	X = floor(start.x);
 	Y = floor(start.y);
 	Z = floor(start.z);
-	Xo = X;
-	Yo = Y;
-	Zo = Z;
+	Xo = start.x;
+	Yo = start.y;
+	Zo = start.z;
 	
 	xz_r = { start.x - X, start.z - Z, end.x-start.x, end.z-start.z };
 	yz_r = { start.y - Y, start.z - Z, end.y-start.y, end.z-start.z };
@@ -935,12 +935,17 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	
 	float tMaxX = fabs(((float)X + (dir.x > 0 ? 1 : 0) - start.x)*tDeltaX);
 	float tMaxY = fabs(((float)Y + (dir.y > 0 ? 1 : 0) - start.y)*tDeltaY);
-	float tMaxZ = fabs(((float)Z + (dir.z > 0 ? 1 : 0)  - start.z)*tDeltaZ);
-	NBT_Debug("(X(%i) + stepX(%i) - start.x(%f))*tDeltaX(%f) = tMaxX(%f)",
-		X, stepX, start.x, tDeltaX, tMaxX
-	);
+	float tMaxZ = fabs(((float)Z + (dir.z > 0 ? 1 : 0) - start.z)*tDeltaZ);
+	//NBT_Debug("(X(%i) + stepX(%i) - start.x(%f))*tDeltaX(%f) = tMaxX(%f)",
+	//	X, stepX, start.x, tDeltaX, tMaxX
+	//);
 	
-	int32_t outX = fabs(ray.length()*tDeltaX), outY = fabs(ray.length()*tDeltaY), outZ = fabs(ray.length()*tDeltaZ);
+	int32_t outX = ceil(fabs(ray.length()*dir.x));
+	int32_t outY = ceil(fabs(ray.length()*dir.y));
+	int32_t outZ = ceil(fabs(ray.length()*dir.z));
+	
+	NBT_Debug("outX(%i) outY(%i) outZ(%i)", outX, outY, outZ);
+	NBT_Debug("ray.length(%f) dir.x(%f)", ray.length(), dir.x);
 	
 	// These next variables are for the debug grids.
 	auto hitCoord = [&](int32_t a, int32_t b) -> int32_t {
@@ -958,7 +963,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 	for (auto &z : hit_yz) z = 0;
 	for (auto &z : hit_xy) z = 0;
 	
-	NBT_Debug("tDeltaX(%f), tDeltaY(%f), tDeltaZ(%f)", tDeltaX, tDeltaY, tDeltaZ);
+	//NBT_Debug("tDeltaX(%f), tDeltaY(%f), tDeltaZ(%f)", tDeltaX, tDeltaY, tDeltaZ);
 	
 	do {
 		//++iterations;
@@ -969,7 +974,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 				NBT_Debug("tMaxX(%f) < tMaxZ(%f): X(%i) += stepX(%i)", tMaxX, tMaxZ, X, stepX);
 				X += stepX;
 	
-				if(fabs(X - Xo) >= outX)
+				if(fabs(X - Xo) > outX)
 					return false; // past end of ray
 				
 				tMaxX += fabs(tDeltaX);
@@ -984,7 +989,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 				Z += stepZ;
 				
 							
-				if(fabs(Z - Zo) >= outZ)
+				if(fabs(Z - Zo) > outZ)
 					return false;
 				tMaxZ += fabs(tDeltaZ);
 								
@@ -999,7 +1004,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 			{
 				NBT_Debug("tMaxY(%f) < tMaxZ(%f): Y(%i) += stepY(%i)", tMaxY, tMaxZ, Y, stepY);
 				Y += stepY;
-				if(fabs(Y-Yo) >= outY)
+				if(fabs(Y-Yo) > outY)
 					return false;
 				
 				tMaxY += fabs(tDeltaY);
@@ -1013,7 +1018,7 @@ bool Renderer::fastVoxelLookCollision(const Ray& ray, BlockInfo& outInfo)
 			{
 				NBT_Debug("tMaxY(%f) >= tMaxZ(%f): Z(%i) += stepZ(%i)", tMaxY, tMaxZ, Z, stepZ);
 				Z += stepZ;
-				if(fabs(Z-Zo) >= outZ)
+				if(fabs(Z-Zo) > outZ)
 					return false;
 				
 				tMaxZ += fabs(tDeltaZ);
