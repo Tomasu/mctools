@@ -34,6 +34,8 @@
 #include "Ray.h"
 #include "Plane.h"
 
+#include "VBO.h"
+
 #include "NBT_Debug.h"
 
 Renderer::Renderer() : level_(nullptr), queue_(nullptr), tmr_(nullptr), dpy_(nullptr)
@@ -84,6 +86,8 @@ void Renderer::uninit()
 	if(al_is_system_installed())
 		al_uninstall_system();
 
+	delete vbo_;
+	
 	tmr_ = nullptr;
 	dpy_ = nullptr;
 	queue_ = nullptr;
@@ -233,6 +237,8 @@ bool Renderer::init(Minecraft *mc, const char *argv0)
 		goto init_failed;
 	}
 
+	vbo_ = new VBO();
+	
 	al_register_event_source(queue, al_get_keyboard_event_source());
 	al_register_event_source(queue, al_get_mouse_event_source());
 	al_register_event_source(queue, al_get_display_event_source(dpy));
@@ -555,12 +561,16 @@ void Renderer::draw()
 		cd->draw(&ctrans, look_block_info_);
 	}
 
+	drawSelection();
+
+	al_use_transform(&trans);
+	vbo_->draw(resManager_);
+	vbo_->clear();
+			
 	glBindVertexArray(0);
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-
-	//drawSelection();
 
 	resManager_->unsetAtlasUniforms();
 }
@@ -643,6 +653,14 @@ void Renderer::drawHud()
 	renderDebugGrid(hit_xy, dw-9*19, dh-9*19, "X-Y", xy_r);
 	renderDebugGrid(hit_xz, dw-9*19*2, dh-9*19, "X-Z", xz_r);
 	renderDebugGrid(hit_yz, dw-9*19*3, dh-9*19, "Y-Z", yz_r);
+}
+
+void Renderer::drawSelection()
+{
+	float padding = 0.05f;
+	glm::vec3 p1 = { look_pos_.x - padding/2.0f, look_pos_.y - padding/2.0f, look_pos_.z - padding/2.0f };
+	glm::vec3 p2 = { look_pos_.x + 1.0f + padding/2.0f, look_pos_.y + 1.0f + padding/2.0f, look_pos_.z + 1 + padding/2.0f };
+	vbo_->addWireCube(p1, p2, Color(0.0f, 0.0f, 0.0f, 1.0f), padding);
 }
 
 void Renderer::updateLookPos()

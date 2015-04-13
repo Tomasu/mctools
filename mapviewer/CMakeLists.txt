@@ -20,6 +20,7 @@ set(VIEWER_HEADERS
 	include/Resource/Model.h
 	include/Resource/ModelVariant.h
 	include/al_ext.h
+	include/VBO.h
 )
 
 set(VIEWER_SOURCE
@@ -38,6 +39,7 @@ set(VIEWER_SOURCE
 	src/Resource/Model.cpp
 	src/Resource/ModelVariant.cpp
 	src/al_ext.c
+	src/VBO.cpp
 	shaders/default.vtx
 	shaders/default.pxl
 )

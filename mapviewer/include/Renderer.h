@@ -18,6 +18,8 @@
 #include "BlockInfo.h"
 #include "Camera.h"
 
+class VBO;
+
 class Ray;
 struct ALLEGRO_FONT;
 class ResourceManager;
@@ -89,6 +91,8 @@ class Renderer
 		ALLEGRO_TRANSFORM al_proj_transform_;
 		
 		ResourceManager *resManager_;
+		
+		VBO *vbo_;
 		
 		std::queue<Chunk::Key> loadChunkQueue;
 		// Debug objects for fastVoxelLookCollision

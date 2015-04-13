@@ -14,6 +14,13 @@ class Plane
 
 		Plane(const glm::vec3 &p1, const glm::vec3 &p2, const glm::vec3 &p3)
 		{
+			init(p1, p2, p3);
+		}
+		
+		Plane(const glm::vec3 &o, const glm::vec3 &n) : m_origin(o), m_normal(n) { }
+		
+		void init(const glm::vec3 &p1, const glm::vec3 &p2, const glm::vec3 &p3)
+		{
 			glm::vec3 edge1 = p2 - p1;
 			glm::vec3 edge2 = p3 - p1;
 
@@ -22,7 +29,11 @@ class Plane
 			m_distance = -glm::normalize(glm::dot( m_normal, p1 ));
 		}
 		
-		Plane(const glm::vec3 &o, const glm::vec3 &n) : m_origin(o), m_normal(n) { }
+		void init(const glm::vec3 &o, const glm::vec3 &n)
+		{
+			m_origin = o;
+			m_normal = n;
+		}
 		
 		glm::vec3 origin() const { return m_origin; }
 		glm::vec3 normal() const { return m_normal; }
